@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  
+  <title>柯里化的意义 | Chuang Yu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="最近某个技术群中有人激进的表达绝不用lodash，称lodash作者态度傲慢，自己只用ramda，于是我很好奇，研究了一会ramda，引申出下面的思考。
+粗略看ramda官方文档不会觉得与lodash有什么不同，但实际上这两者的设计理念很不一样，如果把另一个著名的类库underscore也放到一起对比，大多数人的看法是这样的：
+
+underscore &amp;lt; lodash &amp;lt; ramda">
+<meta property="og:type" content="article">
+<meta property="og:title" content="柯里化的意义">
+<meta property="og:url" content="http://cyyyu.github.io/2016/11/12/柯里化的意义/index.html">
+<meta property="og:site_name" content="Chuang Yu">
+<meta property="og:description" content="最近某个技术群中有人激进的表达绝不用lodash，称lodash作者态度傲慢，自己只用ramda，于是我很好奇，研究了一会ramda，引申出下面的思考。
+粗略看ramda官方文档不会觉得与lodash有什么不同，但实际上这两者的设计理念很不一样，如果把另一个著名的类库underscore也放到一起对比，大多数人的看法是这样的：
+
+underscore &amp;lt; lodash &amp;lt; ramda">
+<meta property="og:updated_time" content="2016-11-14T00:47:14.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="柯里化的意义">
+<meta name="twitter:description" content="最近某个技术群中有人激进的表达绝不用lodash，称lodash作者态度傲慢，自己只用ramda，于是我很好奇，研究了一会ramda，引申出下面的思考。
+粗略看ramda官方文档不会觉得与lodash有什么不同，但实际上这两者的设计理念很不一样，如果把另一个著名的类库underscore也放到一起对比，大多数人的看法是这样的：
+
+underscore &amp;lt; lodash &amp;lt; ramda">
+  
+    <link rel="alternate" href="/atom.xml" title="Chuang Yu" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.ico">
+  
+  <link rel="stylesheet" href="/css/typing.css">
+</head>
+
+  
+    <body>
+  
+      <div id="container" class="container">
+        <article id="post-柯里化的意义" class="article article-type-post" itemscope itemprop="blogPost">
+  <header id="header" class="header">
+  <nav id="main-nav" class="main-nav">
+    
+      <a class="main-nav-link" href="/">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+  </nav>
+</header>
+
+  <hr/>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      柯里化的意义
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry typo" itemprop="articleBody">
+      
+        <p>最近某个技术群中有人激进的表达绝不用<strong>lodash</strong>，称lodash作者态度傲慢，自己只用<strong>ramda</strong>，于是我很好奇，研究了一会ramda，引申出下面的思考。</p>
+<p>粗略看ramda官方文档不会觉得与lodash有什么不同，但实际上这两者的设计理念很不一样，如果把另一个著名的类库underscore也放到一起对比，大多数人的看法是这样的：</p>
+<blockquote>
+<p>underscore &lt; lodash &lt; ramda</p>
+</blockquote>
+<p>ramda被一些人认为强于lodash的一个重要的原因就是将柯里化的思想体现在api设计中。</p>
+<p>官方描述ramda的主要特性也说到，ramda就是为此设计的：</p>
+<blockquote>
+<ul>
+<li>Ramda emphasizes a purer functional style. Immutability and side-effect free functions are at the heart of its design philosophy. This can help you get the job done with simple, elegant code.</li>
+<li>Ramda functions are automatically curried. This allows you to easily build up new functions from old ones simply by not supplying the final parameters.</li>
+<li>The parameters to Ramda functions are arranged to make it convenient for currying. The data to be operated on is generally supplied last.</li>
+</ul>
+<p>The last two points together make it very easy to build functions as sequences of simpler functions, each of which transforms the data and passes it along to the next. Ramda is designed to support this style of coding.</p>
+</blockquote>
+<h2 id="什么是柯里化"><a href="#什么是柯里化" class="headerlink" title="什么是柯里化"></a>什么是柯里化</h2><p>柯里化存在函数式编程中。在支持高阶函数（参数或返回值包含函数的函数）的语言里（如python，javascript），柯里化的产生是自然而然的。</p>
+<p>我们用实例来说明，观察以下python代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">a = map(<span class="keyword">lambda</span> x: x*<span class="number">2</span>, [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div><div class="line">b = map(<span class="keyword">lambda</span> x: x*<span class="number">2</span>, [<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line">c = map(<span class="keyword">lambda</span> x: x*<span class="number">2</span>, [<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>])</div></pre></td></tr></table></figure>
+<p>抽象是程序员的基本素养，上面的代码lambda函数多次使用，不够优雅切不易维护，我们会想到这样改进：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">double = <span class="keyword">lambda</span> x: x*<span class="number">2</span></div><div class="line"></div><div class="line">a = map(double, [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div><div class="line">b = map(double, [<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line">c = map(double, [<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>])</div></pre></td></tr></table></figure>
+<p>如此一来，当业务逻辑有变，我们只需要修改double变量。</p>
+<p>看上去已经足够了，但<code>map(double...</code>不够语义化，试想别人在解读这段代码的时候会这样想：</p>
+<p>“遍历这个list，将double函数作用在每一个元素上，返回一个新的list。”</p>
+<p>若不是double函数名已经足够语义化，我们还得翻看double函数的定义，看看它到底做了什么。是否可以再抽象一点，像下面这样调用： </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">a = getEachItemDoubled([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div><div class="line">b = getEachItemDoubled([<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line">c = getEachItemDoubled([<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>])</div></pre></td></tr></table></figure>
+<p>函数名清晰明确的表达了代码的意图，即使我们没有添加任何注释，谁都明白<code>getEachItemDoubled</code>做了什么。</p>
+<p>这样的<code>getEachItemDoubled</code>函数该怎么定义？</p>
+<p>考虑下面的代码。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">curredMap</span><span class="params">(fn)</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">p</span><span class="params">(x)</span>:</span></div><div class="line">        <span class="keyword">return</span> map(fn, x)</div><div class="line">	<span class="keyword">return</span> p</div><div class="line"></div><div class="line">getEachItemDoubled = curredMap(<span class="keyword">lambda</span> x:x*<span class="number">2</span>)</div></pre></td></tr></table></figure>
+<p><strong>curredMap</strong>和map一样也是个高阶函数，在这段代码中非常重要。如上，现在你可以用你希望的方式使用更语义的<code>getEachItemDoubled</code>。</p>
+<p>有了<code>curredMap</code>函数，你还可以这样：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># 定义一个函数，用于将list每一个元素乘以3</span></div><div class="line">getEachItemTripled = curredMap(<span class="keyword">lambda</span> x: x*<span class="number">3</span>)</div><div class="line"></div><div class="line"><span class="comment"># 定义一个函数，用于将list每个元素字符串化</span></div><div class="line">strEachItem = curredMap(<span class="keyword">lambda</span> x: str(x))</div><div class="line"></div><div class="line">a = getEachItemTripled([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]) <span class="comment"># [3, 6, 9]</span></div><div class="line">b = strEachItem([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]) <span class="comment"># ['1', '2', '3']</span></div></pre></td></tr></table></figure>
+<p>看到这你大概明白了，简而言之，柯里化就是函数的<strong>局部调用</strong>，也称<strong>部分求值</strong>，下面会进一步解释。</p>
+<h2 id="柯里化的意义"><a href="#柯里化的意义" class="headerlink" title="柯里化的意义"></a>柯里化的意义</h2><p>上面的例子中，我们对python的内置函数map做了<strong>部分求值</strong>得到了更加抽象的<code>getEachItemDoubled</code>、<code>getEachItemTripled</code>以及<code>strEachItem</code>，多参函数map变成了一些单参函数。</p>
+<p>原生map函数依赖两个参数，我们没有办法这样使用：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">getEachItemDoubled = map(<span class="keyword">lambda</span> x:x*<span class="number">2</span>)</div><div class="line"><span class="comment"># TypeError: map() requires at least two args</span></div></pre></td></tr></table></figure>
+<p>编译器会抛出TypeError错误。 这样的设计在初学者看来非常痛苦，我需要记住每一个函数必须传递几个参数吗？</p>
+<p>把最初的代码和最终柯里化后的代码放到一起：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">a = map(lambda x: x*2, [1,2,3])</div><div class="line"></div><div class="line">a = curredMap(lambda x: x*2)([1,2,3])</div></pre></td></tr></table></figure>
+<p>map被我们做了降阶处理，这样做有什么意义？</p>
+<p>就上面的例子而言。</p>
+<ul>
+<li>可读性更强。</li>
+</ul>
+<ul>
+<li>接口简化。</li>
+<li>复用性更高。</li>
+</ul>
+<p>最重要的是：你不需要在脑海里记住map函数必须传递两个参数，尽管放心使用<code>curredMap</code>。</p>
+<p>我们现在可以这么理解<strong>局部调用</strong>：map函数要求两个参数，但我只给了它一个参数，理应返回一个能够接收第二个参数的函数，无论我何时想要传递第二个参数，它都能正常工作。这就是柯里化出现的意义。</p>
+<p>再用一段js代码来说明。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">sum</span>(<span class="params">a, b</span>)</span>&#123;</div><div class="line">  <span class="keyword">return</span> a + b</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">cu</span>(<span class="params">x, y</span>)</span>&#123;</div><div class="line">  <span class="function"><span class="keyword">function</span> <span class="title">fn</span>(<span class="params">z</span>)</span>&#123;</div><div class="line">    <span class="keyword">return</span> x + z</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">if</span>(<span class="built_in">arguments</span>.length === <span class="number">1</span>)&#123;</div><div class="line">    <span class="keyword">return</span> fn</div><div class="line">  &#125; </div><div class="line">  <span class="keyword">return</span> x + y  </div><div class="line">&#125;</div><div class="line"></div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>)</div><div class="line">curredSum(<span class="number">1</span>)(<span class="number">2</span>)</div></pre></td></tr></table></figure>
+<p>curredSum看上去并没有比sum函数可读性更好，也不见得接口更简单，两者似乎没什么区别。</p>
+<p>而curredSum的真正优势体现在下面这种情形中。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* 方式一 */</span></div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">7</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">11</span>,<span class="number">12</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">11</span>,<span class="number">12</span>,<span class="number">14</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">11</span>,<span class="number">12</span>,<span class="number">17</span>)</div><div class="line"><span class="comment">// ...</span></div><div class="line"></div><div class="line"><span class="comment">/* 方式二 */</span></div><div class="line"><span class="keyword">var</span> sixPlus = curredSum(<span class="number">1</span>+<span class="number">2</span>+<span class="number">3</span>)</div><div class="line">sixPlus(<span class="number">4</span>)</div><div class="line">sixPlus(<span class="number">7</span>)</div><div class="line">sixPlus(<span class="number">11</span>)</div><div class="line"><span class="keyword">var</span> twentyNinePlus = curredSum(<span class="number">1</span>+<span class="number">2</span>+<span class="number">3</span>+<span class="number">11</span>+<span class="number">12</span>)</div><div class="line">twentyNinePlus(<span class="number">14</span>)</div><div class="line">twentyNinePlus(<span class="number">17</span>)</div><div class="line"><span class="comment">// ...</span></div></pre></td></tr></table></figure>
+<p>若参数被多次复用，就应该抽象出来，无论怎么看，柯里化后的代码都更加容易维护和扩展，并且也不失易读性。</p>
+<p>最后，我们来看看ramda中的柯里化。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> R = <span class="built_in">require</span>(<span class="string">'ramda'</span>)</div><div class="line"></div><div class="line">R.append(<span class="string">'c'</span>, [<span class="string">'a'</span>,<span class="string">'b'</span>]) <span class="comment">// -&gt; ['a','b','c']</span></div><div class="line"><span class="comment">/* 下面的函数作用是为数组追加一个'c' */</span></div><div class="line"><span class="keyword">var</span> appendC = R.append(<span class="string">'c'</span>)</div><div class="line">appendC([<span class="string">'a'</span>,<span class="string">'b'</span>]) <span class="comment">// -&gt; ['a','b','c']</span></div><div class="line">appendC([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]) <span class="comment">// -&gt; [1,2,3,'c']</span></div><div class="line"></div><div class="line">R.remove(<span class="number">1</span>,<span class="number">2</span>,[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>]) <span class="comment">// -&gt; [1,4]</span></div><div class="line"><span class="comment">/* 下面这个函数的作用是从[1,2,3,4,5]开始位置去除x个数，返回一个新的数组 */</span></div><div class="line"><span class="comment">/* R.__在这里作为占位符，表示柯里化后的函数形参应该传递的位置 */</span></div><div class="line"><span class="keyword">var</span> removeXFromStart = R.remove(<span class="number">0</span>,R.__,[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>])</div><div class="line">removeXFromStart(<span class="number">2</span>) <span class="comment">// -&gt; [3,4,5]</span></div><div class="line">removeXFromStart(<span class="number">4</span>) <span class="comment">// -&gt; [5]</span></div><div class="line"></div><div class="line"><span class="comment">/* 下面这个更复杂一点 */</span></div><div class="line"><span class="comment">/* t函数的作用是取出参数的x属性值，乘2，取反 */</span></div><div class="line"><span class="keyword">var</span> t = R.compose(R.negate, x =&gt; x*<span class="number">2</span>, R.prop(<span class="string">'x'</span>))</div><div class="line">t(&#123;</div><div class="line">  <span class="attr">x</span>: <span class="number">100</span>,</div><div class="line">  <span class="attr">y</span>: <span class="number">200</span>,</div><div class="line">  <span class="attr">z</span>: <span class="number">300</span></div><div class="line">&#125;) <span class="comment">// -&gt; -200</span></div><div class="line">t(&#123;</div><div class="line">  <span class="attr">x</span>: <span class="number">1</span>,</div><div class="line">  <span class="attr">y</span>: <span class="number">2</span></div><div class="line">&#125;) <span class="comment">// -&gt; -2</span></div></pre></td></tr></table></figure>
+<p>如果你用过lodash，你一定清楚上面的例子和lodash的区别，但lodash用户是否应该为此就过渡到ramda，推荐你看看Scott Sauyet写的<a href="http://fr.umio.us/why-ramda/" target="_blank" rel="external">why ramda</a>，以及google一下ramda和lodash的更多对比再做决定。</p>
+<p>尽管以上说的都是柯里化为函数式编程带来的好处，我还是得说，理智的程序员还是应该谨慎使用这种编程方法。</p>
+<p>不该使用柯里化的场景之一是：函数的参数总是需要多个同时传递，否则函数本身的语义就不明确，或者被破坏。例如一个函数定义为标出地图上的点，往往在使用它的时候经度和纬度会同时传入，无论你只传入经度还是纬度都显得很别扭，柯里化这样的函数没有意义，纯粹画蛇添足。</p>
+<p>另外，我们应该思考，既然柯里化让一切那么美好，很多语言设计之初为什么让函数可以定义多个形参，为什么在这之上更衍生出了默认参数、可变参数、关键字参数？参数定义如此灵活是好是坏？</p>
+<p>python由于tuple这种数据类型的存在，使得多参函数轻易的接受一个混合过后的tuple作为参数，并将其展开为多个参数，仿佛函数定义时的参数个数毫无约束性，多参函数仍然可以像单参函数一样使用，考量一个函数应该定义多参还是单参在python里似乎并不重要了，个人爱好这时候高于一切。仍然有很多使用多参函数的场景，大多数人可以熟练的将参数提前组合，柯里化只不过把步骤分解了。</p>
+<p>在我看来，应不应该柯里化，只需考量一点，局部调用这个函数是否意义更明确。</p>
+<p>强行柯里化也可能是灾难。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <ul class="article-meta">
+        <li>
+          <span class="label">Published Date:</span>
+          <a href="/2016/11/12/柯里化的意义/" class="article-date">
+  <time datetime="2016-11-12T04:35:26.000Z" itemprop="datePublished">2016-11-12</time>
+</a>
+
+        </li>
+        
+        
+        <hr/>
+      </ul>
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav" class="article-nav">
+  
+    <a href="/2016/11/25/JavaScript-Array-sort/" id="article-nav-newer" class="article-nav-link-wrap newer">
+      <strong class="article-nav-caption">Récent</strong>
+      <div class="article-nav-title">
+        
+          JavaScript Array.sort
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/11/07/什么是模块/" id="article-nav-older" class="article-nav-link-wrap older">
+      <strong class="article-nav-caption">Ancien</strong>
+      <div class="article-nav-title">什么是模块</div>
+    </a>
+  
+</nav>
+
+
+  
+</article>
+
+
+
+
+      </div>
+      
+    <footer id="footer" class="post-footer footer">
+      <hr/>
+      <div id="footerContent" class="footer-content">
+        <p>Chuang Yu. 1993.</p>
+
+
+      
+      <a id="nav-lss-link" class="nav-icon" href="/atom.xml" title="Flux RSS">RSS</a>
+    
+
+      </div>
+    </footer>
+
+      
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/typing.js"></script>
+<!--[if lt IE 9]><script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.min.js"></script><![endif]-->
+
+
+
+<!-- Google Analytics -->
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-84954709-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+
+
+
+    </div>
+  </body>
+</html>

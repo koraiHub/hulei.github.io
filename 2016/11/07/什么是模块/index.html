@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  
+  <title>什么是模块 | Chuang Yu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="写在前面阅读下文假定你基本了解：使用mocha做单元测试，angularjs，nodejs环境搭建以及npm的使用。
+先说结论：
+
+被函数包装，每次调用实例化一个新的对象或返回同一个对象（单例模式下，函数至少需要调用一次）
+
+上述函数中有内部函数暴露出来，使其内部作用域形成闭包。
+
+
+Angularjs是个很’模块化’的框架，这里不谈MVC，MVVM，指令，服务。谈谈ng中的依赖注入，ng出世时最">
+<meta property="og:type" content="article">
+<meta property="og:title" content="什么是模块">
+<meta property="og:url" content="http://cyyyu.github.io/2016/11/07/什么是模块/index.html">
+<meta property="og:site_name" content="Chuang Yu">
+<meta property="og:description" content="写在前面阅读下文假定你基本了解：使用mocha做单元测试，angularjs，nodejs环境搭建以及npm的使用。
+先说结论：
+
+被函数包装，每次调用实例化一个新的对象或返回同一个对象（单例模式下，函数至少需要调用一次）
+
+上述函数中有内部函数暴露出来，使其内部作用域形成闭包。
+
+
+Angularjs是个很’模块化’的框架，这里不谈MVC，MVVM，指令，服务。谈谈ng中的依赖注入，ng出世时最">
+<meta property="og:updated_time" content="2016-11-09T04:09:59.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="什么是模块">
+<meta name="twitter:description" content="写在前面阅读下文假定你基本了解：使用mocha做单元测试，angularjs，nodejs环境搭建以及npm的使用。
+先说结论：
+
+被函数包装，每次调用实例化一个新的对象或返回同一个对象（单例模式下，函数至少需要调用一次）
+
+上述函数中有内部函数暴露出来，使其内部作用域形成闭包。
+
+
+Angularjs是个很’模块化’的框架，这里不谈MVC，MVVM，指令，服务。谈谈ng中的依赖注入，ng出世时最">
+  
+    <link rel="alternate" href="/atom.xml" title="Chuang Yu" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.ico">
+  
+  <link rel="stylesheet" href="/css/typing.css">
+</head>
+
+  
+    <body>
+  
+      <div id="container" class="container">
+        <article id="post-什么是模块" class="article article-type-post" itemscope itemprop="blogPost">
+  <header id="header" class="header">
+  <nav id="main-nav" class="main-nav">
+    
+      <a class="main-nav-link" href="/">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+  </nav>
+</header>
+
+  <hr/>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      什么是模块
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry typo" itemprop="articleBody">
+      
+        <h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>阅读下文假定你基本了解：使用<code>mocha</code>做单元测试，angularjs，nodejs环境搭建以及npm的使用。</p>
+<p>先说结论：</p>
+<ul>
+<li><p>被函数包装，每次调用实例化一个新的对象或返回同一个对象（单例模式下，函数至少需要调用一次）</p>
+</li>
+<li><p>上述函数中有内部函数暴露出来，使其内部作用域形成闭包。</p>
+</li>
+</ul>
+<p>Angularjs是个很’模块化’的框架，这里不谈MVC，MVVM，指令，服务。谈谈ng中的依赖注入，ng出世时最为人称道的概念之一。</p>
+<p>基于上述结论我会写个模块构造器，以这个例子来说明如何创建一个模块。</p>
+<p>以下ng指代angular。</p>
+<h3 id="ng中的依赖注入"><a href="#ng中的依赖注入" class="headerlink" title="ng中的依赖注入"></a>ng中的依赖注入</h3><p>在ng中，当我们要创建一个不依赖任何模块的模块<code>foo</code>，我们这样写：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'foo'</span>, [])</div></pre></td></tr></table></figure>
+<p>当我们要创建另一个依赖上述<code>foo</code>模块的另一个模块时我们这样写：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'another'</span>, [<span class="string">'foo'</span>])</div></pre></td></tr></table></figure>
+<p>这就是最简单的依赖注入。</p>
+<p>在第一个<code>foo</code>模块中，由于angular的module方法返回angular自身，我们可以像jQuery那样链式调用，在其后创建模块中的<code>service</code>，就像下面这样：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'foo'</span>, []).service(<span class="string">'fooService'</span>, [<span class="function"><span class="keyword">function</span>(<span class="params">$scope</span>)</span>&#123;&#125;])</div></pre></td></tr></table></figure>
+<p>当<code>another</code>声明自己依赖<code>foo</code>时，<code>foo</code>中的service<strong>注入</strong>了<code>another</code>，在这个过程中，angular帮助我们完成了篇头的<strong>结论一</strong>，模块<code>another</code>接着创建controller时可以使用foo中已经创建好的service：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'another'</span>, [<span class="string">'foo'</span>]).controller(<span class="string">'anotherCtrl'</span>, [<span class="string">'fooService'</span>, <span class="function"><span class="keyword">function</span>(<span class="params">fooService</span>)</span>&#123;&#125;])</div></pre></td></tr></table></figure>
+<p>我们注意到一个细节，controller方法的第二个参数是一个数组，数组的第一个元素声明了所依赖的模块名，而数组的最后一个元素是个匿名函数，<code>fooService</code>在这里被当做参数<strong>注入</strong>了，显然，在这个匿名函数里你可以调用fooService实例化后暴露的公共api，访问到到原始fooService里的私有变量，js程序员不可能不知道，这就是<strong>闭包</strong>。</p>
+<h3 id="我们的模块"><a href="#我们的模块" class="headerlink" title="我们的模块"></a>我们的模块</h3><p>ng里的controller，service等可以视为子模块，简单起见，我们的模块去掉了这些概念，但保留了依赖注入：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">MyModule.module(<span class="string">'module1'</span>, [], <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;&#125;)</div><div class="line"></div><div class="line">MyModule.module(<span class="string">'module2'</span>, [<span class="string">'module1'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1</span>)</span>&#123;&#125;)</div><div class="line"></div><div class="line">MyModule.module(<span class="string">'module3'</span>, [<span class="string">'module1'</span>, <span class="string">'module2'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1, module2</span>)</span>&#123;&#125;)</div></pre></td></tr></table></figure>
+<p>上面的代码中，<code>MyModule</code>定义了三个模块，module1不依赖任何模块，module2依赖module1，module3依赖module1和module2。</p>
+<p>为了实现上述的模式，我们来先写一点测试。</p>
+<p>创建一个空项目目录，在根目录创建test文件夹，并且在test文件夹内创建module.js文件，下面是module.js文件的内容：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> expect = <span class="built_in">require</span>(<span class="string">'chai'</span>).expect;</div><div class="line"></div><div class="line">describe(<span class="string">'My module tests'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> MyModule;</div><div class="line"></div><div class="line">	before(<span class="function"><span class="keyword">function</span>(<span class="params">done</span>) </span>&#123;</div><div class="line">		MyModule = <span class="built_in">require</span>(<span class="string">'../index.js'</span>)()</div><div class="line"></div><div class="line">		done()</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'desc MyModule'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'module'</span>)</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'getAll'</span>)</div><div class="line">	&#125;)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>在测试代码里我们指明了模块构造器的路径（根目录的index.js），它提供了两个方法，<code>module</code>和<code>getAll</code>，顾名思义，<code>module</code>方法定义模块，<code>getAll</code>方法获得所有模块。</p>
+<p>先来创建<code>index.js</code>，使最开始的测试代码通过：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>运行<code>mocha</code>，一片绿灯。</p>
+<p>现在可以定义我们的第一个模块了，在测试代码中添加以下内容：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">it(<span class="string">'define module1'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	MyModule.module(<span class="string">'module1'</span>, [], <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">let</span> tmp = <span class="number">123</span></div><div class="line">			<span class="keyword">return</span> &#123;</div><div class="line">				<span class="attr">foo</span>: tmp</div><div class="line">			&#125;</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	expect(MyModule.getAll()).has.a.property(<span class="string">'module1'</span>)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>module1不依赖任何模块，所以第二个参数是个空数组，第三个参数定义了module1作为模块被注入其它模块时提供了什么，注意到这个函数中有个私有变量tmp，为了证明稍后这里形成了闭包，我们把暴露出去的foo属性指向了tmp，稍后在module2中我们会尝试访问它。</p>
+<p>现在运行测试代码，当然不会通过，我们来为这段测试脚本更新index.js。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">let</span> modules = &#123;&#125;;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params">name, injects, body</span>) </span>&#123;</div><div class="line"></div><div class="line">			modules[name] = &#123;</div><div class="line">				<span class="attr">dependencies</span>: injects,</div><div class="line">				<span class="attr">body</span>: body</div><div class="line">			&#125;;</div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">return</span> modules;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>内部的私有变量modules是个哈希列表，因为模块名是<strong>唯一的不重名的字符串</strong>，我们自然的想到用这样的数据结构储存它，module方法简单的把模块和相关信息放到了modules里，而getAll方法则直接返回了modules。</p>
+<p>这样，我们通过了第二段测试。</p>
+<p>继续往下，在测试代码中定义第二个模块：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">it(<span class="string">'define module2'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	MyModule.module(<span class="string">'module2'</span>, [<span class="string">'module1'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1</span>) </span>&#123;</div><div class="line">		expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line">		<span class="keyword">return</span> &#123;</div><div class="line">			<span class="attr">a</span>: <span class="number">456</span>,</div><div class="line">			<span class="attr">ref</span>: module1</div><div class="line">		&#125;</div><div class="line">	&#125;)</div><div class="line">	expect(MyModule.getAll()).has.a.property(<span class="string">'module2'</span>)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>module1被注入到了module2中，并且在module2里我们尝试访问module1的foo属性，如果一切顺利，它应该是<code>123</code>。</p>
+<p>实现上面的逻辑我们需要对MyModule的module方法里的第二个参数做一些处理，现在来修改index.js：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">let</span> modules = &#123;&#125;;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params">name, injects, body</span>) </span>&#123;</div><div class="line"></div><div class="line">			<span class="function"><span class="keyword">function</span> <span class="title">enumerateInjects</span>(<span class="params">injects</span>) </span>&#123;</div><div class="line">				<span class="keyword">let</span> tmp = [];</div><div class="line"></div><div class="line">				<span class="keyword">for</span> (<span class="keyword">let</span> i <span class="keyword">in</span> injects) &#123;</div><div class="line">					<span class="keyword">if</span> (modules[injects[i]]) &#123;</div><div class="line">						tmp.push(modules[injects[i]].body())</div><div class="line">					&#125; <span class="keyword">else</span> &#123;</div><div class="line">						<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`Inject error. No module named <span class="subst">$&#123;injects[i]&#125;</span>`</span>);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line"></div><div class="line">				<span class="keyword">return</span> tmp;</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			modules[name] = &#123;</div><div class="line">				<span class="attr">dependencies</span>: injects,</div><div class="line">				<span class="attr">body</span>: body</div><div class="line">			&#125;;</div><div class="line"></div><div class="line">			body.apply(<span class="keyword">this</span>, enumerateInjects(injects))</div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">return</span> modules;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>enumerateInjects函数遍历了injects参数，把对应模块执行，并将执行后的结果放到一个数组里返回，并且我们还额外做了一点错误处理（当指定要依赖的模块不存在时抛出错误）。在module方法的最后，我们把得到的数组传给了body函数，apply方法在这里很关键，第二个参数数组被展开成了多个参数，于是module2拿到了module1执行后的结果。</p>
+<p>此时再运行一遍测试脚本，比预料的还要顺利。</p>
+<p>看上去我们的构造器完成了，module1顺利注入到了module2里，实际上到此为止module1确实构成了一个模块，可以被注入到任何模块中。但我们考虑的还不够，我们应该继续往下，尝试构造module3，把module1和module2都注入进去看看会发生什么。</p>
+<p>补充测试脚本：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">it(<span class="string">'define module3'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	MyModule.module(<span class="string">'module3'</span>, [<span class="string">'module1'</span>, <span class="string">'module2'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1, module2</span>) </span>&#123;</div><div class="line">		expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line">		expect(module2.a).to.equal(<span class="number">456</span>)</div><div class="line">		expect(module2.ref.foo).to.equal(<span class="number">123</span>)</div><div class="line"></div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	expect(MyModule.getAll()).has.a.property(<span class="string">'module3'</span>)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>再次运行测试，没有通过。控制台抛出了TypeError错误，告诉我们这里引用了不存在的属性。</p>
+<p>思考index.js里的代码，我们假定module1的注入没有问题（事实上确实没问题，因为前面已经经过检验），当我们把module2注入module3时enumerateInjects函数做了什么？</p>
+<p>module2依赖module1，但遍历过程中我们却忽略了这一点，直接执行module2的body而不考虑它在定义时声明的依赖，若module1此时没有注入到module2里，自然不可能得到我们预期的结果。</p>
+<p>对enumerateInjects函数做如下修改：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">enumerateInjects</span>(<span class="params">injects</span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> tmp = [];</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">let</span> i <span class="keyword">in</span> injects) &#123;</div><div class="line">		<span class="keyword">if</span> (modules[injects[i]]) &#123;</div><div class="line">			<span class="keyword">if</span> (modules[injects[i]].dependencies.length &gt; <span class="number">0</span>) &#123;</div><div class="line">				<span class="keyword">let</span> deepEnumerateInjects = enumerateInjects(modules[injects[i]].dependencies);</div><div class="line"></div><div class="line">				tmp.push(modules[injects[i]].body.apply(<span class="literal">null</span>, deepEnumerateInjects))</div><div class="line">			&#125; <span class="keyword">else</span> &#123;</div><div class="line">				tmp.push(modules[injects[i]].body())</div><div class="line">			&#125;</div><div class="line">		&#125; <span class="keyword">else</span> &#123;</div><div class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`Inject error. No module named <span class="subst">$&#123;injects[i]&#125;</span>`</span>);</div><div class="line">        &#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> tmp;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在第一个if判断里我们添加了对依赖的依赖的依赖…的处理，没错，这是个<strong>递归</strong>，无论模块嵌套有多深，在有限的深度里我们都可以将它一个个找到并最终传递给当前模块。</p>
+<p>到此，测试脚本顺利运行。最终我们的module.js和index.js如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// module.js</span></div><div class="line"><span class="keyword">let</span> expect = <span class="built_in">require</span>(<span class="string">'chai'</span>).expect;</div><div class="line"></div><div class="line">describe(<span class="string">'My module tests'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> MyModule;</div><div class="line"></div><div class="line">	before(<span class="function"><span class="keyword">function</span>(<span class="params">done</span>) </span>&#123;</div><div class="line">		MyModule = <span class="built_in">require</span>(<span class="string">'../index.js'</span>)()</div><div class="line"></div><div class="line">		done()</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'desc MyModule'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'module'</span>)</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'getAll'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'define module1'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		MyModule.module(<span class="string">'module1'</span>, [], <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">let</span> tmp = <span class="number">123</span></div><div class="line">			<span class="keyword">return</span> &#123;</div><div class="line">				<span class="attr">foo</span>: tmp</div><div class="line">			&#125;</div><div class="line">		&#125;)</div><div class="line"></div><div class="line">		expect(MyModule.getAll()).has.a.property(<span class="string">'module1'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'define module2'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		MyModule.module(<span class="string">'module2'</span>, [<span class="string">'module1'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1</span>) </span>&#123;</div><div class="line">			expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line"></div><div class="line">			<span class="keyword">return</span> &#123;</div><div class="line">				<span class="attr">a</span>: <span class="number">456</span>,</div><div class="line">				<span class="attr">ref</span>: module1</div><div class="line">			&#125;</div><div class="line">		&#125;)</div><div class="line"></div><div class="line">		expect(MyModule.getAll()).has.a.property(<span class="string">'module2'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'define module3'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		MyModule.module(<span class="string">'module3'</span>, [<span class="string">'module1'</span>, <span class="string">'module2'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1, module2</span>) </span>&#123;</div><div class="line">			expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line">			expect(module2.a).to.equal(<span class="number">456</span>)</div><div class="line">			expect(module2.ref.foo).to.equal(<span class="number">123</span>)</div><div class="line"></div><div class="line">		&#125;)</div><div class="line"></div><div class="line">		expect(MyModule.getAll()).has.a.property(<span class="string">'module3'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// index.js</span></div><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">let</span> modules = &#123;&#125;;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params">name, injects, body</span>) </span>&#123;</div><div class="line"></div><div class="line">			<span class="function"><span class="keyword">function</span> <span class="title">enumerateInjects</span>(<span class="params">injects</span>) </span>&#123;</div><div class="line">				<span class="keyword">let</span> tmp = [];</div><div class="line">				<span class="keyword">for</span> (<span class="keyword">let</span> i <span class="keyword">in</span> injects) &#123;</div><div class="line">					<span class="keyword">if</span> (modules[injects[i]]) &#123;</div><div class="line">						<span class="keyword">if</span> (modules[injects[i]].dependencies.length &gt; <span class="number">0</span>) &#123;</div><div class="line">							<span class="keyword">let</span> deepEnumerateInjects = enumerateInjects(modules[injects[i]].dependencies);</div><div class="line"></div><div class="line">							tmp.push(modules[injects[i]].body.apply(<span class="literal">null</span>, deepEnumerateInjects))</div><div class="line">						&#125; <span class="keyword">else</span> &#123;</div><div class="line">							tmp.push(modules[injects[i]].body())</div><div class="line">						&#125;</div><div class="line">					&#125; <span class="keyword">else</span> &#123;</div><div class="line">						<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`Inject error. No module named <span class="subst">$&#123;injects[i]&#125;</span>`</span>);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line"></div><div class="line">				<span class="keyword">return</span> tmp;</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			modules[name] = &#123;</div><div class="line">				<span class="attr">dependencies</span>: injects,</div><div class="line">				<span class="attr">body</span>: body</div><div class="line">			&#125;;</div><div class="line"></div><div class="line">			body.apply(<span class="keyword">this</span>, enumerateInjects(injects))</div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">return</span> modules;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>本文的最后，我们定义的module3其实并不是一个模块，因为它没有满足篇头结论里的第二条。因此在别的模块中注入它是毫无意义的。</p>
+<p>良好的模块定义和管理在协作开发中至关重要，模块模式并没有什么最佳实践，有的只是对经验的不段总结，本文说述的也只是模块模式的凤毛麟角。</p>
+<p>本篇文章里的代码不建议用到生产环境中，建议使用优秀的方案如<a href="https://github.com/requirejs/requirejs" target="_blank" rel="external">require.js</a>。</p>
+<p>完整源码地址：<a href="https://github.com/cyyyu/inc" target="_blank" rel="external">github</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <ul class="article-meta">
+        <li>
+          <span class="label">Published Date:</span>
+          <a href="/2016/11/07/什么是模块/" class="article-date">
+  <time datetime="2016-11-07T00:48:32.000Z" itemprop="datePublished">2016-11-07</time>
+</a>
+
+        </li>
+        
+        
+        <hr/>
+      </ul>
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav" class="article-nav">
+  
+    <a href="/2016/11/12/柯里化的意义/" id="article-nav-newer" class="article-nav-link-wrap newer">
+      <strong class="article-nav-caption">Récent</strong>
+      <div class="article-nav-title">
+        
+          柯里化的意义
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/10/09/git-diff使用/" id="article-nav-older" class="article-nav-link-wrap older">
+      <strong class="article-nav-caption">Ancien</strong>
+      <div class="article-nav-title">git diff使用</div>
+    </a>
+  
+</nav>
+
+
+  
+</article>
+
+
+
+
+      </div>
+      
+    <footer id="footer" class="post-footer footer">
+      <hr/>
+      <div id="footerContent" class="footer-content">
+        <p>Chuang Yu. 1993.</p>
+
+
+      
+      <a id="nav-lss-link" class="nav-icon" href="/atom.xml" title="Flux RSS">RSS</a>
+    
+
+      </div>
+    </footer>
+
+      
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/typing.js"></script>
+<!--[if lt IE 9]><script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.min.js"></script><![endif]-->
+
+
+
+<!-- Google Analytics -->
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-84954709-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+
+
+
+    </div>
+  </body>
+</html>

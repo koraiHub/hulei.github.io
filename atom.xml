@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Chuang Yu</title>
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://cyyyu.github.io/"/>
+  <updated>2017-02-17T10:43:18.000Z</updated>
+  <id>http://cyyyu.github.io/</id>
+  
+  <author>
+    <name>Chuang Yu</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Lua元表</title>
+    <link href="http://cyyyu.github.io/2017/02/17/Lua%E5%85%83%E8%A1%A8/"/>
+    <id>http://cyyyu.github.io/2017/02/17/Lua元表/</id>
+    <published>2017-02-17T10:43:18.000Z</published>
+    <updated>2017-02-17T10:43:18.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>javascript语言本身不支持面向对象，ES2015中增加了class关键字，却不过是prototype语法糖而已，本质上prototype形式的面向对象只能算是一种“模拟”，这其中很重要的原因之一是js从来没有一套完美的深拷贝方案，子类只能借助原型链获取父类方法的引用，这不能算是严格意义的继承，当然也就算不上面向对象。</p>
+<p>和js一样，lua的面向对象需要通过table来模拟，有些行为很像js中的原型，比如下面的例子。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">Animal = &#123;name = <span class="string">"Animal"</span>&#125;</div><div class="line">Animal.__index= Animal</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Animal:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Animal:GetName</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">return</span> self.name</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">x = Animal:new()</div></pre></td></tr></table></figure>
+<p>在lua中，<strong>元表</strong>是个很有意思的存在。上面Animal是实例出的对象x的元表，元表在某种意义上相当于js中的构造函数，而<code>__index</code>则类似<code>prototype</code>（这里<code>__index</code>我设置为指向自身）。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">print</span>(x.name) <span class="comment">-- Animal</span></div><div class="line"><span class="built_in">print</span>(x:GetName()) <span class="comment">-- Animal</span></div><div class="line">Animal.name = <span class="string">"Animal2"</span></div><div class="line"><span class="built_in">print</span>(x.name) <span class="comment">-- Animal2</span></div><div class="line"><span class="built_in">print</span>(x:GetName()) <span class="comment">-- Animal2</span></div></pre></td></tr></table></figure>
+<p>如果在x中不存在name键，对<code>x.name</code>的访问实际上会从x的元表中的<code>__index</code>键寻找，如果仍然找不到，则会在Animal的元表中继续找，若既没有元表也找不到该键，返回nil，这和js原型链如出一辙。</p>
+<p>借助元表，我们很容易模拟面向对象中的继承和多态，比如我们来实现一个继承自Animal的Dog类。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">Dog = &#123;&#125;</div><div class="line"><span class="built_in">setmetatable</span>(Dog, Animal)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Dog:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  self.__index = self</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+<p>效果如下。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">y = Dog:new()</div><div class="line"></div><div class="line"><span class="built_in">print</span>(y:GetName()) <span class="comment">-- Animal</span></div><div class="line">Animal.name = <span class="string">"Hello"</span></div><div class="line"><span class="built_in">print</span>(y.GetName()) <span class="comment">-- Hello</span></div><div class="line">Dog.name = <span class="string">"Dog"</span></div><div class="line"><span class="built_in">print</span>(y.GetName()) <span class="comment">-- Dog</span></div></pre></td></tr></table></figure>
+<p>实际上，lua中的元表比js中的原型机制强大的多。</p>
+<p>上述的例子是Lua中最常见的实现OO的方法，除了关键的<code>setmetatable</code>函数，<code>__index</code>键也很重要，它不仅可以是另一个table的引用，也可以是一个函数，当实例对象试着从<code>__index</code>寻找时便会调用这个函数，可以想象，这为多重继承的实现提供了可能，而js做不到这一点（<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Details_of_the_Object_Model#No_multiple_inheritance" target="_blank" rel="external">参考</a>）。</p>
+<p>举个简单的例子。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-- 定义两个相似的类A和B</span></div><div class="line">A = &#123;foo1 = <span class="number">123</span>, name = <span class="string">"A"</span>&#125;</div><div class="line">A.__index = A</div><div class="line">B = &#123;foo2 = <span class="number">456</span>, name = <span class="string">"B"</span>&#125;</div><div class="line">B.__index = B</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">A:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">A:GetName</span><span class="params">()</span></span></div><div class="line">  <span class="built_in">print</span>(self.name)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">B:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">B:GetName</span><span class="params">()</span></span></div><div class="line">  <span class="built_in">print</span>(self.name)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">B:MethodOnB</span><span class="params">()</span></span></div><div class="line">  <span class="built_in">print</span>(<span class="string">"method on B"</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- 定义类C，继承自A和B</span></div><div class="line">C = &#123;&#125;</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">C:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> childA = A:new()</div><div class="line">  <span class="keyword">local</span> childB = B:new()</div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, &#123;</div><div class="line">    __index = <span class="function"><span class="keyword">function</span> <span class="params">(table, key)</span></span></div><div class="line">      <span class="keyword">if</span> childA[key] <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> childA[key]</div><div class="line">      <span class="keyword">elseif</span> childB[key] <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> childB[key]</div><div class="line">      <span class="keyword">else</span> </div><div class="line">        <span class="keyword">return</span> <span class="string">"not found"</span></div><div class="line">      <span class="keyword">end</span></div><div class="line">    <span class="keyword">end</span></div><div class="line">  &#125;)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">x = C:new()</div><div class="line"></div><div class="line"><span class="built_in">print</span>(x.foo1) <span class="comment">-- 123</span></div><div class="line"><span class="built_in">print</span>(x.foo2) <span class="comment">-- 456</span></div><div class="line"></div><div class="line">x:GetName() <span class="comment">-- A</span></div><div class="line">x:MethodOnB() <span class="comment">-- method on B</span></div></pre></td></tr></table></figure>
+<p>C类继承了来自A和B的方法。</p>
+<p>注意到上面的例子中A和B都拥有GetName方法，我们可以进一步假设A和B都继承自另外一个对象，而他们各自的GetName方法其实都继承自这个对象，这就产生了经典的钻石问题（也叫菱形继承问题），即：C继承到的GetName方法到底来自A还是B？一些原生支持面向对象和多重继承的语言为了解决钻石问题，往往会采用特定的遍历算法，如Python采用的是从左到右广度优先原则，使用的是名叫“C3”的算法。而在上面这里例子里我只是简单的指定了先从A中寻找，再从B中寻找，所以C继承了A的GetName方法。</p>
+<p>在lua中，元表除了用来模拟面向对象，还有一些不可思议的作用：自定义table间运算的行为。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-- 定义加法行为</span></div><div class="line">meta = &#123;__add = <span class="function"><span class="keyword">function</span><span class="params">(A, B)</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="keyword">for</span> _, val <span class="keyword">in</span> <span class="built_in">ipairs</span>(A) <span class="keyword">do</span></div><div class="line">    <span class="built_in">table</span>.insert(re, val)</div><div class="line">  <span class="keyword">end</span></div><div class="line">  <span class="keyword">for</span> _, val <span class="keyword">in</span> <span class="built_in">ipairs</span>(B) <span class="keyword">do</span></div><div class="line">    <span class="built_in">table</span>.insert(re, val)</div><div class="line">  <span class="keyword">end</span></div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line">&#125;</div><div class="line">a = <span class="built_in">setmetatable</span>(&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;, meta)</div><div class="line">b = <span class="built_in">setmetatable</span>(&#123;<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>&#125;, meta)</div><div class="line"></div><div class="line">c = a + b <span class="comment">-- &#123;1, 2, 3, 4, 5, 6&#125;</span></div></pre></td></tr></table></figure>
+<p>除了<code>__add</code>，元表上可自定义的运算行为包括如下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">__add		对应的运算符 &apos;+&apos;.</div><div class="line">__sub		对应的运算符 &apos;-&apos;.</div><div class="line">__mul		对应的运算符 &apos;*&apos;.</div><div class="line">__div		对应的运算符 &apos;/&apos;.</div><div class="line">__mod		对应的运算符 &apos;%&apos;.</div><div class="line">__unm		对应的运算符 &apos;-&apos;.</div><div class="line">__concat	对应的运算符 &apos;..&apos;.</div><div class="line">__eq		对应的运算符 &apos;==&apos;.</div><div class="line">__lt		对应的运算符 &apos;&lt;&apos;.</div><div class="line">__le		对应的运算符 &apos;&lt;=&apos;.</div></pre></td></tr></table></figure>
+<p>而除了运算，元表甚至可以让table像函数一样调用，使用<code>__call</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">a = setmetatable(&#123;&#125;, &#123;__call = function(mytable, params)</div><div class="line">  print(&quot;123&quot;..params)</div><div class="line">end&#125;)</div><div class="line"></div><div class="line">a(456) -- 123456</div></pre></td></tr></table></figure>
+<p>所有上述提到的在元表上以<code>__</code>开头的方法统称为<strong><a href="https://www.lua.org/pil/13.html" target="_blank" rel="external">元方法</a></strong>。</p>
+<p>元表有这么多有意思的设计，也难怪lua程序员说js中的原型只能算实现了元表功能的十分之一。</p>
+<p>话说回来，在lua中使用面向对象和在js中的感觉差不多，过去基于prototype模拟OO，很多人有不同的实现，如今js在语法层面统一了写法，而在lua中仍然有很多人尝试对上面这些例子的写法进行封装，试图让代码更容易维护和扩展，这样的折腾其实没什么意义，因为面向对象本身就不易维护。以小而精致著称的lua也不太可能提供语言层面支持，毕竟连社区都没几个，也没看到有人表达这样的诉求，函数式语言就写函数式，多好。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;javascript语言本身不支持面向对象，ES2015中增加了class关键字，却不过是prototype语法糖而已，本质上prototype形式的面向对象只能算是一种“模拟”，这其中很重要的原因之一是js从来没有一套完美的深拷贝方案，子类只能借助原型链获取父类方法的引用
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>面试中的问题2</title>
+    <link href="http://cyyyu.github.io/2017/02/09/%E9%9D%A2%E8%AF%95%E4%B8%AD%E7%9A%84%E9%97%AE%E9%A2%982/"/>
+    <id>http://cyyyu.github.io/2017/02/09/面试中的问题2/</id>
+    <published>2017-02-09T08:07:40.000Z</published>
+    <updated>2017-02-09T08:11:01.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>继续说说这两天碰到的题目。</p>
+<p>这次是Strikingly出的题，算是面试前的热身，主要考js。题目就在他们的github上：<a href="https://github.com/strikingly/strikingly-interview-test-instructions" target="_blank" rel="external">地址</a>，看上次提交时间有一年了，相信有不少人做过了这道题。</p>
+<p>简言之，这次要写的是<a href="https://en.wikipedia.org/wiki/Hangman_(game" target="_blank" rel="external">Hangman</a>)游戏的客户端。</p>
+<p>我之前没听说过Hangman，更别说玩过了，所以这次先花时间了解了一下，挺有意思的猜词游戏，规则很简单：A出题，告诉B单词有多少个字母组成，B每次猜一个字母，每猜错一次A在纸上画一笔，结束的条件是A画出一个吊死的小人或B猜出了单词。</p>
+<p>Strikingly的规则是：由他们充当A，我写个客户端充当B，一共80个单词，用写好的程序玩游戏，每个单词有10次机会，猜中一个单词加10分，10次猜不出则扣相应的分数（如猜到第5次时如果跳过这个单词则扣5分）。</p>
+<p>因为有扣分机制，游戏是很容易出现负分，并且越到后面单词长度越长，所以想拿高分没那么容易。</p>
+<p>这个题能想到的有几个难点：</p>
+<ol>
+<li>词库。</li>
+<li>选择可能性最大的字母。</li>
+</ol>
+<p>1的话需要借助一下现成的api，google了一下还蛮多的，就选了一个比较靠谱的。</p>
+<p>做2的过程花的时间最长。首先，如果是一个新单词，那么26个英文字中任何一个字母都有可能（想过是否辅音比例应该更大）。其次，在1得到了所有有可能的单词后将其中有可能的字母提取出来，再随机选择其中一个，这一步刚开始做的时候做了过滤重复字母处理，其实是多余的，这样做让所有字母被猜到的概率一致，而真实情况是，某些字母比其它字母的可能性确实更大，因为它们在多个可能性单词中都出现了。</p>
+<p>最近两天时间很少，在机场候机时，以及在睡觉前把程序写了出来。</p>
+<p>看到要求中提到可以用coffeescript写这个小程序，就重温了一下写coffee的感觉。</p>
+<p>完整代码放到了github上：<a href="https://github.com/cyyyu/strikingly-interview-test-answer.git" target="_blank" rel="external">strikingly-interview-test-answer</a></p>
+<p>很遗憾拿到的最高分记得只有43分，最多的时候只猜了不到20个词，对方的服务器经常长时间不回应，比较无奈，当然代码里也有很多待优化的地方，很好奇这道题谁做了最高分。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;继续说说这两天碰到的题目。&lt;/p&gt;
+&lt;p&gt;这次是Strikingly出的题，算是面试前的热身，主要考js。题目就在他们的github上：&lt;a href=&quot;https://github.com/strikingly/strikingly-interview-test-inst
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>面试中的问题</title>
+    <link href="http://cyyyu.github.io/2017/01/29/%E9%9D%A2%E8%AF%95%E4%B8%AD%E7%9A%84%E9%97%AE%E9%A2%98/"/>
+    <id>http://cyyyu.github.io/2017/01/29/面试中的问题/</id>
+    <published>2017-01-29T12:31:42.000Z</published>
+    <updated>2017-01-29T12:31:42.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>年前发了个求职贴，一周以来陆续有很多公司对我表示感兴趣，面试和笔试也不少，其中有道笔试题大概是这样的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">把以下数据组成个树打印出来，像npm list命令一样。</div><div class="line">let testData = [</div><div class="line">    &#123;id:1, name: &apos;i1&apos;&#125;, </div><div class="line">    &#123;id:2, name:&apos;i2&apos;, parentId: 1&#125;,</div><div class="line">    &#123;id:4, name:&apos;i4&apos;, parentId: 3&#125;,</div><div class="line">    &#123;id:3, name:&apos;i3&apos;, parentId: 2&#125;,</div><div class="line">    &#123;id:8, name:&apos;i8&apos;, parentId: 7&#125;</div><div class="line">]</div></pre></td></tr></table></figure>
+<p>笔试过程不累述，是一家比较喜欢的公司，而当时比较紧张，时间紧迫，只向面试官阐述了思路，勉强过关，却没有写出自己满意的答案。事后想想其实这题并不难，这里做个简单总结，答案并不一定是最好的。</p>
+<p>一眼注意到i8是个游离在外的叶子，所以还要处理不在树内的情况，这里后面再说到。这题最大的问题是i4这个叶子的父级是i3，若按顺序遍历的话i3还在i4之后遍历到，就无法将i4挂在i3下。和面试官交流了下，给我的提示是用个全局缓存就好了，当时也确实是这么做的，但总觉得应该有更优雅的处理办法。</p>
+<p>对于上述问题我现在的思路是用递归即可，对于无法找到父级的叶子元素，放到遍历对象的尾部再处理，就不需要全局缓存了。</p>
+<p>下面说说实现。</p>
+<p>首先最终得到的树的结构我定义如下。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">&#123;</div><div class="line">  <span class="attr">id</span>: xxx,</div><div class="line">  <span class="attr">name</span>: xxx,</div><div class="line">  <span class="attr">child</span>: &#123;...&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>由于此题一眼看去只是个单页树，就全当单页树处理，暂不考虑多叉树的情况。</p>
+<p>先实现主函数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">main</span>(<span class="params">parent, arr</span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> child = arr.shift();</div><div class="line">	</div><div class="line">	<span class="keyword">if</span>(!child) <span class="keyword">return</span> parent;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(!child.parentId) &#123; <span class="comment">// no parent, set as root.</span></div><div class="line">		<span class="keyword">if</span>(!parent.id) &#123; <span class="comment">// only one root.</span></div><div class="line">			parent = child;</div><div class="line">		&#125;</div><div class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// got a child.</span></div><div class="line">		<span class="keyword">let</span> ok = setChild(parent, child);</div><div class="line">		<span class="keyword">if</span>(!ok) &#123; <span class="comment">// parent not found.</span></div><div class="line">			<span class="keyword">if</span>(!ok) &#123;</div><div class="line">				arr.push(child);</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> main(parent, arr);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>主函数基本实现了我说的思路，首先将数组第一个元素提取出来，然后定义终止条件（即：提取元素失败），接着根据提取出的元素设定为根元素（没有找到parentId）或设定为叶子（找到parentId），然后递归调用自身。</p>
+<p>其中setChild函数的实现如下。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">setChild</span>(<span class="params">parent, child</span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> finded = <span class="literal">false</span>; <span class="comment">// flag.</span></div><div class="line">	<span class="keyword">if</span>(parent.id === child.parentId) &#123;</div><div class="line">		parent.child = child;</div><div class="line">		finded = <span class="literal">true</span>;</div><div class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span>(parent.child) &#123;</div><div class="line">		finded = setChild(parent.child, child);</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> finded;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>setChild同样也是用递归实现，返回true或false表示子元素设置成功或失败。</p>
+<p>不过现在尝试运行<code>main({}, testData)</code>会造成内存溢出，因为i8始终找不到父级，使得递归永远无法终止。所以我们得改造下main函数，添加合适的错误处理。改造如下。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">main</span>(<span class="params">parent, arr, depth</span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> child = arr.shift();</div><div class="line">	depth = depth || <span class="number">0</span>;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(!child) <span class="keyword">return</span> parent;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(!child.parentId) &#123; <span class="comment">// no parent, set as root.</span></div><div class="line">		<span class="keyword">if</span>(!parent.id) &#123; <span class="comment">// only one root.</span></div><div class="line">			parent = child;</div><div class="line">		&#125;</div><div class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// got a child.</span></div><div class="line">		<span class="keyword">let</span> ok = setChild(parent, child);</div><div class="line">		<span class="keyword">if</span>(!ok) &#123; <span class="comment">// parent not found.</span></div><div class="line">			<span class="keyword">if</span>(depth &lt; <span class="number">10</span>) &#123;</div><div class="line">				arr.push(child);</div><div class="line">				depth++;</div><div class="line">			&#125; <span class="keyword">else</span> &#123; <span class="comment">// ending</span></div><div class="line">				<span class="built_in">console</span>.log(<span class="string">'These children have no parents: '</span>, arr.concat(child))</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> main(parent, arr, ++depth);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>更新后的main函数加上了第三个参数depth，可选，且初始为0，每次递归自增1，10次递归后终止，并打印仍未找到父级的元素。完成后的代码运行<code>console.log(main({}, data))</code>，结果如下。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">These children have no parents:  [ &#123; <span class="attr">id</span>: <span class="number">8</span>, <span class="attr">name</span>: <span class="string">'i8'</span>, <span class="attr">parentId</span>: <span class="number">7</span> &#125; ]</div><div class="line">&#123; <span class="attr">id</span>: <span class="number">1</span>,</div><div class="line">  <span class="attr">name</span>: <span class="string">'i1'</span>,</div><div class="line">  <span class="attr">child</span>: </div><div class="line">   &#123; <span class="attr">id</span>: <span class="number">2</span>,</div><div class="line">     <span class="attr">name</span>: <span class="string">'i2'</span>,</div><div class="line">     <span class="attr">parentId</span>: <span class="number">1</span>,</div><div class="line">     <span class="attr">child</span>: &#123; <span class="attr">id</span>: <span class="number">3</span>, <span class="attr">name</span>: <span class="string">'i3'</span>, <span class="attr">parentId</span>: <span class="number">2</span>, <span class="attr">child</span>: [<span class="built_in">Object</span>] &#125; &#125; &#125;</div></pre></td></tr></table></figure>
+<p>看样子树已经生成了。最后加上个printTree函数，格式化输出。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">printTree</span>(<span class="params">tree, depth</span>) </span>&#123;</div><div class="line">	depth = depth || <span class="number">0</span>;</div><div class="line">	<span class="keyword">let</span> i = depth,</div><div class="line">		str = <span class="string">''</span>;</div><div class="line">	<span class="keyword">while</span>(i--) &#123;</div><div class="line">		str += <span class="string">'--'</span></div><div class="line">	&#125;</div><div class="line">	<span class="built_in">console</span>.log(str + <span class="string">'name: '</span> + tree.name);</div><div class="line">	<span class="keyword">if</span>(tree.child) &#123;</div><div class="line">		printTree(tree.child, ++depth);</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>然后运行。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> tree = main(&#123;&#125;, data);</div><div class="line">printTree(tree);</div></pre></td></tr></table></figure>
+<p>输出。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">These children have no parents:  [ &#123; <span class="attr">id</span>: <span class="number">8</span>, <span class="attr">name</span>: <span class="string">'i8'</span>, <span class="attr">parentId</span>: <span class="number">7</span> &#125; ]</div><div class="line">name: i1</div><div class="line">--name: i2</div><div class="line">----name: i3</div><div class="line">------name: i4</div></pre></td></tr></table></figure>
+<p>至此，用了三个递归函数，尽管实现上还有一些问题（递归深度控制，多叉树兼容等），此题算是解出来了。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;年前发了个求职贴，一周以来陆续有很多公司对我表示感兴趣，面试和笔试也不少，其中有道笔试题大概是这样的。&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;li
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>万圣节下的github</title>
+    <link href="http://cyyyu.github.io/2016/12/18/%E4%B8%87%E5%9C%A3%E8%8A%82%E4%B8%8B%E7%9A%84github/"/>
+    <id>http://cyyyu.github.io/2016/12/18/万圣节下的github/</id>
+    <published>2016-12-18T02:50:10.000Z</published>
+    <updated>2017-01-29T12:35:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><img src="/images/github-commits.png" alt=""></p>
+<p>昨天起公司不再使用github做代码托管，谨以万圣节下的这张截图合影留念。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;img src=&quot;/images/github-commits.png&quot; alt=&quot;&quot;&gt;&lt;/p&gt;
+&lt;p&gt;昨天起公司不再使用github做代码托管，谨以万圣节下的这张截图合影留念。&lt;/p&gt;
+
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>JavaScript Array.sort</title>
+    <link href="http://cyyyu.github.io/2016/11/25/JavaScript-Array-sort/"/>
+    <id>http://cyyyu.github.io/2016/11/25/JavaScript-Array-sort/</id>
+    <published>2016-11-25T13:45:04.000Z</published>
+    <updated>2017-01-29T12:35:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>今天用js重温了几种排序算法，发现个很有意思的网站：<a href="http://jsdo.it/norahiko/oxIy/fullscreen" target="_blank" rel="external">几种排序算法的动画演示</a></p>
+<p>一直以来对<code>Array.sort</code>有个不痛不痒的误解，认为它底层用了快速排序。实际上呢，这个api有时候用了快速排序、有时候用了归并排序、还有时候用了选择排序，取决于作用的数组对象，以及引擎。</p>
+<p>之所以引擎会有不同的实现， 是因为ECMAscript压根没规定要用什么算法实现。好奇心驱使检索了一会。</p>
+<hr>
+<p>只所以有之前的误解是因为，既然快速排序被认可为已知的排序算法中最快的，有什么理由不用呢。反过来想，也许不用的理由也很简单，大概和快速排序本身是不稳定算法有关。</p>
+<p>在v8（chrome）里，作用在长度小于23的数组上用的是插入排序，而大于23的采用的是快速排序。</p>
+<p>快排的不稳定在于基准元素的选择和比较的方式，可能造成值相同的元素在排序后相对位置发生了变化，Safari、Firefox这两的引擎表示不能接受，选择了用归并排序来实现。</p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">&gt; The array is sorted on the key correctly, but where there are duplicate values</div><div class="line">&gt; for the key, the original order is NOT preserved.</div><div class="line">&gt;</div></pre></td></tr></table></figure>
+</blockquote>
+<p>来自多年前Bugzilla上的这篇<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=224128" target="_blank" rel="external">report</a>。一个叫<em>Martin Thomson</em>的人提出的bug。</p>
+<p>IE的实现则同样是稳定排序（测试如此），不过并没有找到用了什么排序方法。</p>
+<hr>
+<p>引擎背后的实现其实不必太关心。</p>
+<p>sort的使用来复习一遍。列一个很多不熟悉Api的程序员常犯的错误，唯一的一个可选的参数并不是断言，该函数需要返回三个可能的值，例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">foo.sort(<span class="function">(<span class="params">a, b</span>)=&gt;</span>&#123;<span class="keyword">return</span> a -  b&#125;)</div></pre></td></tr></table></figure>
+<ul>
+<li>若返回值大于0，a在b后</li>
+<li>若返回值等于0，位置不变</li>
+<li>若返回值小于0，a在b前</li>
+</ul>
+<p>如果传入断言，返回值只可能大于0或等于0，显然得不到想要的结果。</p>
+<p>并且要注意的是，这里比较的是数组元素的unicode编码，忽略这一点会对下面这个数组的排序疑惑（并不是想像中的从小到大排序）。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[<span class="number">2</span>,<span class="number">1</span>,<span class="number">10</span>].sort() <span class="comment">// [1,10,2]</span></div></pre></td></tr></table></figure>
+<p>（完）</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;今天用js重温了几种排序算法，发现个很有意思的网站：&lt;a href=&quot;http://jsdo.it/norahiko/oxIy/fullscreen&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;几种排序算法的动画演示&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;一直以来对&lt;c
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>柯里化的意义</title>
+    <link href="http://cyyyu.github.io/2016/11/12/%E6%9F%AF%E9%87%8C%E5%8C%96%E7%9A%84%E6%84%8F%E4%B9%89/"/>
+    <id>http://cyyyu.github.io/2016/11/12/柯里化的意义/</id>
+    <published>2016-11-12T04:35:26.000Z</published>
+    <updated>2016-11-14T00:47:14.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>最近某个技术群中有人激进的表达绝不用<strong>lodash</strong>，称lodash作者态度傲慢，自己只用<strong>ramda</strong>，于是我很好奇，研究了一会ramda，引申出下面的思考。</p>
+<p>粗略看ramda官方文档不会觉得与lodash有什么不同，但实际上这两者的设计理念很不一样，如果把另一个著名的类库underscore也放到一起对比，大多数人的看法是这样的：</p>
+<blockquote>
+<p>underscore &lt; lodash &lt; ramda</p>
+</blockquote>
+<p>ramda被一些人认为强于lodash的一个重要的原因就是将柯里化的思想体现在api设计中。</p>
+<p>官方描述ramda的主要特性也说到，ramda就是为此设计的：</p>
+<blockquote>
+<ul>
+<li>Ramda emphasizes a purer functional style. Immutability and side-effect free functions are at the heart of its design philosophy. This can help you get the job done with simple, elegant code.</li>
+<li>Ramda functions are automatically curried. This allows you to easily build up new functions from old ones simply by not supplying the final parameters.</li>
+<li>The parameters to Ramda functions are arranged to make it convenient for currying. The data to be operated on is generally supplied last.</li>
+</ul>
+<p>The last two points together make it very easy to build functions as sequences of simpler functions, each of which transforms the data and passes it along to the next. Ramda is designed to support this style of coding.</p>
+</blockquote>
+<h2 id="什么是柯里化"><a href="#什么是柯里化" class="headerlink" title="什么是柯里化"></a>什么是柯里化</h2><p>柯里化存在函数式编程中。在支持高阶函数（参数或返回值包含函数的函数）的语言里（如python，javascript），柯里化的产生是自然而然的。</p>
+<p>我们用实例来说明，观察以下python代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">a = map(<span class="keyword">lambda</span> x: x*<span class="number">2</span>, [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div><div class="line">b = map(<span class="keyword">lambda</span> x: x*<span class="number">2</span>, [<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line">c = map(<span class="keyword">lambda</span> x: x*<span class="number">2</span>, [<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>])</div></pre></td></tr></table></figure>
+<p>抽象是程序员的基本素养，上面的代码lambda函数多次使用，不够优雅切不易维护，我们会想到这样改进：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">double = <span class="keyword">lambda</span> x: x*<span class="number">2</span></div><div class="line"></div><div class="line">a = map(double, [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div><div class="line">b = map(double, [<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line">c = map(double, [<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>])</div></pre></td></tr></table></figure>
+<p>如此一来，当业务逻辑有变，我们只需要修改double变量。</p>
+<p>看上去已经足够了，但<code>map(double...</code>不够语义化，试想别人在解读这段代码的时候会这样想：</p>
+<p>“遍历这个list，将double函数作用在每一个元素上，返回一个新的list。”</p>
+<p>若不是double函数名已经足够语义化，我们还得翻看double函数的定义，看看它到底做了什么。是否可以再抽象一点，像下面这样调用： </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">a = getEachItemDoubled([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div><div class="line">b = getEachItemDoubled([<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line">c = getEachItemDoubled([<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>])</div></pre></td></tr></table></figure>
+<p>函数名清晰明确的表达了代码的意图，即使我们没有添加任何注释，谁都明白<code>getEachItemDoubled</code>做了什么。</p>
+<p>这样的<code>getEachItemDoubled</code>函数该怎么定义？</p>
+<p>考虑下面的代码。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">curredMap</span><span class="params">(fn)</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">p</span><span class="params">(x)</span>:</span></div><div class="line">        <span class="keyword">return</span> map(fn, x)</div><div class="line">	<span class="keyword">return</span> p</div><div class="line"></div><div class="line">getEachItemDoubled = curredMap(<span class="keyword">lambda</span> x:x*<span class="number">2</span>)</div></pre></td></tr></table></figure>
+<p><strong>curredMap</strong>和map一样也是个高阶函数，在这段代码中非常重要。如上，现在你可以用你希望的方式使用更语义的<code>getEachItemDoubled</code>。</p>
+<p>有了<code>curredMap</code>函数，你还可以这样：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># 定义一个函数，用于将list每一个元素乘以3</span></div><div class="line">getEachItemTripled = curredMap(<span class="keyword">lambda</span> x: x*<span class="number">3</span>)</div><div class="line"></div><div class="line"><span class="comment"># 定义一个函数，用于将list每个元素字符串化</span></div><div class="line">strEachItem = curredMap(<span class="keyword">lambda</span> x: str(x))</div><div class="line"></div><div class="line">a = getEachItemTripled([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]) <span class="comment"># [3, 6, 9]</span></div><div class="line">b = strEachItem([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]) <span class="comment"># ['1', '2', '3']</span></div></pre></td></tr></table></figure>
+<p>看到这你大概明白了，简而言之，柯里化就是函数的<strong>局部调用</strong>，也称<strong>部分求值</strong>，下面会进一步解释。</p>
+<h2 id="柯里化的意义"><a href="#柯里化的意义" class="headerlink" title="柯里化的意义"></a>柯里化的意义</h2><p>上面的例子中，我们对python的内置函数map做了<strong>部分求值</strong>得到了更加抽象的<code>getEachItemDoubled</code>、<code>getEachItemTripled</code>以及<code>strEachItem</code>，多参函数map变成了一些单参函数。</p>
+<p>原生map函数依赖两个参数，我们没有办法这样使用：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">getEachItemDoubled = map(<span class="keyword">lambda</span> x:x*<span class="number">2</span>)</div><div class="line"><span class="comment"># TypeError: map() requires at least two args</span></div></pre></td></tr></table></figure>
+<p>编译器会抛出TypeError错误。 这样的设计在初学者看来非常痛苦，我需要记住每一个函数必须传递几个参数吗？</p>
+<p>把最初的代码和最终柯里化后的代码放到一起：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">a = map(lambda x: x*2, [1,2,3])</div><div class="line"></div><div class="line">a = curredMap(lambda x: x*2)([1,2,3])</div></pre></td></tr></table></figure>
+<p>map被我们做了降阶处理，这样做有什么意义？</p>
+<p>就上面的例子而言。</p>
+<ul>
+<li>可读性更强。</li>
+</ul>
+<ul>
+<li>接口简化。</li>
+<li>复用性更高。</li>
+</ul>
+<p>最重要的是：你不需要在脑海里记住map函数必须传递两个参数，尽管放心使用<code>curredMap</code>。</p>
+<p>我们现在可以这么理解<strong>局部调用</strong>：map函数要求两个参数，但我只给了它一个参数，理应返回一个能够接收第二个参数的函数，无论我何时想要传递第二个参数，它都能正常工作。这就是柯里化出现的意义。</p>
+<p>再用一段js代码来说明。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">sum</span>(<span class="params">a, b</span>)</span>&#123;</div><div class="line">  <span class="keyword">return</span> a + b</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">cu</span>(<span class="params">x, y</span>)</span>&#123;</div><div class="line">  <span class="function"><span class="keyword">function</span> <span class="title">fn</span>(<span class="params">z</span>)</span>&#123;</div><div class="line">    <span class="keyword">return</span> x + z</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">if</span>(<span class="built_in">arguments</span>.length === <span class="number">1</span>)&#123;</div><div class="line">    <span class="keyword">return</span> fn</div><div class="line">  &#125; </div><div class="line">  <span class="keyword">return</span> x + y  </div><div class="line">&#125;</div><div class="line"></div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>)</div><div class="line">curredSum(<span class="number">1</span>)(<span class="number">2</span>)</div></pre></td></tr></table></figure>
+<p>curredSum看上去并没有比sum函数可读性更好，也不见得接口更简单，两者似乎没什么区别。</p>
+<p>而curredSum的真正优势体现在下面这种情形中。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* 方式一 */</span></div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">7</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">11</span>,<span class="number">12</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">11</span>,<span class="number">12</span>,<span class="number">14</span>)</div><div class="line">sum(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">11</span>,<span class="number">12</span>,<span class="number">17</span>)</div><div class="line"><span class="comment">// ...</span></div><div class="line"></div><div class="line"><span class="comment">/* 方式二 */</span></div><div class="line"><span class="keyword">var</span> sixPlus = curredSum(<span class="number">1</span>+<span class="number">2</span>+<span class="number">3</span>)</div><div class="line">sixPlus(<span class="number">4</span>)</div><div class="line">sixPlus(<span class="number">7</span>)</div><div class="line">sixPlus(<span class="number">11</span>)</div><div class="line"><span class="keyword">var</span> twentyNinePlus = curredSum(<span class="number">1</span>+<span class="number">2</span>+<span class="number">3</span>+<span class="number">11</span>+<span class="number">12</span>)</div><div class="line">twentyNinePlus(<span class="number">14</span>)</div><div class="line">twentyNinePlus(<span class="number">17</span>)</div><div class="line"><span class="comment">// ...</span></div></pre></td></tr></table></figure>
+<p>若参数被多次复用，就应该抽象出来，无论怎么看，柯里化后的代码都更加容易维护和扩展，并且也不失易读性。</p>
+<p>最后，我们来看看ramda中的柯里化。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> R = <span class="built_in">require</span>(<span class="string">'ramda'</span>)</div><div class="line"></div><div class="line">R.append(<span class="string">'c'</span>, [<span class="string">'a'</span>,<span class="string">'b'</span>]) <span class="comment">// -&gt; ['a','b','c']</span></div><div class="line"><span class="comment">/* 下面的函数作用是为数组追加一个'c' */</span></div><div class="line"><span class="keyword">var</span> appendC = R.append(<span class="string">'c'</span>)</div><div class="line">appendC([<span class="string">'a'</span>,<span class="string">'b'</span>]) <span class="comment">// -&gt; ['a','b','c']</span></div><div class="line">appendC([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]) <span class="comment">// -&gt; [1,2,3,'c']</span></div><div class="line"></div><div class="line">R.remove(<span class="number">1</span>,<span class="number">2</span>,[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>]) <span class="comment">// -&gt; [1,4]</span></div><div class="line"><span class="comment">/* 下面这个函数的作用是从[1,2,3,4,5]开始位置去除x个数，返回一个新的数组 */</span></div><div class="line"><span class="comment">/* R.__在这里作为占位符，表示柯里化后的函数形参应该传递的位置 */</span></div><div class="line"><span class="keyword">var</span> removeXFromStart = R.remove(<span class="number">0</span>,R.__,[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>])</div><div class="line">removeXFromStart(<span class="number">2</span>) <span class="comment">// -&gt; [3,4,5]</span></div><div class="line">removeXFromStart(<span class="number">4</span>) <span class="comment">// -&gt; [5]</span></div><div class="line"></div><div class="line"><span class="comment">/* 下面这个更复杂一点 */</span></div><div class="line"><span class="comment">/* t函数的作用是取出参数的x属性值，乘2，取反 */</span></div><div class="line"><span class="keyword">var</span> t = R.compose(R.negate, x =&gt; x*<span class="number">2</span>, R.prop(<span class="string">'x'</span>))</div><div class="line">t(&#123;</div><div class="line">  <span class="attr">x</span>: <span class="number">100</span>,</div><div class="line">  <span class="attr">y</span>: <span class="number">200</span>,</div><div class="line">  <span class="attr">z</span>: <span class="number">300</span></div><div class="line">&#125;) <span class="comment">// -&gt; -200</span></div><div class="line">t(&#123;</div><div class="line">  <span class="attr">x</span>: <span class="number">1</span>,</div><div class="line">  <span class="attr">y</span>: <span class="number">2</span></div><div class="line">&#125;) <span class="comment">// -&gt; -2</span></div></pre></td></tr></table></figure>
+<p>如果你用过lodash，你一定清楚上面的例子和lodash的区别，但lodash用户是否应该为此就过渡到ramda，推荐你看看Scott Sauyet写的<a href="http://fr.umio.us/why-ramda/" target="_blank" rel="external">why ramda</a>，以及google一下ramda和lodash的更多对比再做决定。</p>
+<p>尽管以上说的都是柯里化为函数式编程带来的好处，我还是得说，理智的程序员还是应该谨慎使用这种编程方法。</p>
+<p>不该使用柯里化的场景之一是：函数的参数总是需要多个同时传递，否则函数本身的语义就不明确，或者被破坏。例如一个函数定义为标出地图上的点，往往在使用它的时候经度和纬度会同时传入，无论你只传入经度还是纬度都显得很别扭，柯里化这样的函数没有意义，纯粹画蛇添足。</p>
+<p>另外，我们应该思考，既然柯里化让一切那么美好，很多语言设计之初为什么让函数可以定义多个形参，为什么在这之上更衍生出了默认参数、可变参数、关键字参数？参数定义如此灵活是好是坏？</p>
+<p>python由于tuple这种数据类型的存在，使得多参函数轻易的接受一个混合过后的tuple作为参数，并将其展开为多个参数，仿佛函数定义时的参数个数毫无约束性，多参函数仍然可以像单参函数一样使用，考量一个函数应该定义多参还是单参在python里似乎并不重要了，个人爱好这时候高于一切。仍然有很多使用多参函数的场景，大多数人可以熟练的将参数提前组合，柯里化只不过把步骤分解了。</p>
+<p>在我看来，应不应该柯里化，只需考量一点，局部调用这个函数是否意义更明确。</p>
+<p>强行柯里化也可能是灾难。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;最近某个技术群中有人激进的表达绝不用&lt;strong&gt;lodash&lt;/strong&gt;，称lodash作者态度傲慢，自己只用&lt;strong&gt;ramda&lt;/strong&gt;，于是我很好奇，研究了一会ramda，引申出下面的思考。&lt;/p&gt;
+&lt;p&gt;粗略看ramda官方文档不会觉得与lo
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>什么是模块</title>
+    <link href="http://cyyyu.github.io/2016/11/07/%E4%BB%80%E4%B9%88%E6%98%AF%E6%A8%A1%E5%9D%97/"/>
+    <id>http://cyyyu.github.io/2016/11/07/什么是模块/</id>
+    <published>2016-11-07T00:48:32.000Z</published>
+    <updated>2016-11-09T04:09:59.000Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>阅读下文假定你基本了解：使用<code>mocha</code>做单元测试，angularjs，nodejs环境搭建以及npm的使用。</p>
+<p>先说结论：</p>
+<ul>
+<li><p>被函数包装，每次调用实例化一个新的对象或返回同一个对象（单例模式下，函数至少需要调用一次）</p>
+</li>
+<li><p>上述函数中有内部函数暴露出来，使其内部作用域形成闭包。</p>
+</li>
+</ul>
+<p>Angularjs是个很’模块化’的框架，这里不谈MVC，MVVM，指令，服务。谈谈ng中的依赖注入，ng出世时最为人称道的概念之一。</p>
+<p>基于上述结论我会写个模块构造器，以这个例子来说明如何创建一个模块。</p>
+<p>以下ng指代angular。</p>
+<h3 id="ng中的依赖注入"><a href="#ng中的依赖注入" class="headerlink" title="ng中的依赖注入"></a>ng中的依赖注入</h3><p>在ng中，当我们要创建一个不依赖任何模块的模块<code>foo</code>，我们这样写：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'foo'</span>, [])</div></pre></td></tr></table></figure>
+<p>当我们要创建另一个依赖上述<code>foo</code>模块的另一个模块时我们这样写：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'another'</span>, [<span class="string">'foo'</span>])</div></pre></td></tr></table></figure>
+<p>这就是最简单的依赖注入。</p>
+<p>在第一个<code>foo</code>模块中，由于angular的module方法返回angular自身，我们可以像jQuery那样链式调用，在其后创建模块中的<code>service</code>，就像下面这样：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'foo'</span>, []).service(<span class="string">'fooService'</span>, [<span class="function"><span class="keyword">function</span>(<span class="params">$scope</span>)</span>&#123;&#125;])</div></pre></td></tr></table></figure>
+<p>当<code>another</code>声明自己依赖<code>foo</code>时，<code>foo</code>中的service<strong>注入</strong>了<code>another</code>，在这个过程中，angular帮助我们完成了篇头的<strong>结论一</strong>，模块<code>another</code>接着创建controller时可以使用foo中已经创建好的service：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">angular.module(<span class="string">'another'</span>, [<span class="string">'foo'</span>]).controller(<span class="string">'anotherCtrl'</span>, [<span class="string">'fooService'</span>, <span class="function"><span class="keyword">function</span>(<span class="params">fooService</span>)</span>&#123;&#125;])</div></pre></td></tr></table></figure>
+<p>我们注意到一个细节，controller方法的第二个参数是一个数组，数组的第一个元素声明了所依赖的模块名，而数组的最后一个元素是个匿名函数，<code>fooService</code>在这里被当做参数<strong>注入</strong>了，显然，在这个匿名函数里你可以调用fooService实例化后暴露的公共api，访问到到原始fooService里的私有变量，js程序员不可能不知道，这就是<strong>闭包</strong>。</p>
+<h3 id="我们的模块"><a href="#我们的模块" class="headerlink" title="我们的模块"></a>我们的模块</h3><p>ng里的controller，service等可以视为子模块，简单起见，我们的模块去掉了这些概念，但保留了依赖注入：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">MyModule.module(<span class="string">'module1'</span>, [], <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;&#125;)</div><div class="line"></div><div class="line">MyModule.module(<span class="string">'module2'</span>, [<span class="string">'module1'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1</span>)</span>&#123;&#125;)</div><div class="line"></div><div class="line">MyModule.module(<span class="string">'module3'</span>, [<span class="string">'module1'</span>, <span class="string">'module2'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1, module2</span>)</span>&#123;&#125;)</div></pre></td></tr></table></figure>
+<p>上面的代码中，<code>MyModule</code>定义了三个模块，module1不依赖任何模块，module2依赖module1，module3依赖module1和module2。</p>
+<p>为了实现上述的模式，我们来先写一点测试。</p>
+<p>创建一个空项目目录，在根目录创建test文件夹，并且在test文件夹内创建module.js文件，下面是module.js文件的内容：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> expect = <span class="built_in">require</span>(<span class="string">'chai'</span>).expect;</div><div class="line"></div><div class="line">describe(<span class="string">'My module tests'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> MyModule;</div><div class="line"></div><div class="line">	before(<span class="function"><span class="keyword">function</span>(<span class="params">done</span>) </span>&#123;</div><div class="line">		MyModule = <span class="built_in">require</span>(<span class="string">'../index.js'</span>)()</div><div class="line"></div><div class="line">		done()</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'desc MyModule'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'module'</span>)</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'getAll'</span>)</div><div class="line">	&#125;)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>在测试代码里我们指明了模块构造器的路径（根目录的index.js），它提供了两个方法，<code>module</code>和<code>getAll</code>，顾名思义，<code>module</code>方法定义模块，<code>getAll</code>方法获得所有模块。</p>
+<p>先来创建<code>index.js</code>，使最开始的测试代码通过：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>运行<code>mocha</code>，一片绿灯。</p>
+<p>现在可以定义我们的第一个模块了，在测试代码中添加以下内容：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">it(<span class="string">'define module1'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	MyModule.module(<span class="string">'module1'</span>, [], <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">let</span> tmp = <span class="number">123</span></div><div class="line">			<span class="keyword">return</span> &#123;</div><div class="line">				<span class="attr">foo</span>: tmp</div><div class="line">			&#125;</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	expect(MyModule.getAll()).has.a.property(<span class="string">'module1'</span>)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>module1不依赖任何模块，所以第二个参数是个空数组，第三个参数定义了module1作为模块被注入其它模块时提供了什么，注意到这个函数中有个私有变量tmp，为了证明稍后这里形成了闭包，我们把暴露出去的foo属性指向了tmp，稍后在module2中我们会尝试访问它。</p>
+<p>现在运行测试代码，当然不会通过，我们来为这段测试脚本更新index.js。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">let</span> modules = &#123;&#125;;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params">name, injects, body</span>) </span>&#123;</div><div class="line"></div><div class="line">			modules[name] = &#123;</div><div class="line">				<span class="attr">dependencies</span>: injects,</div><div class="line">				<span class="attr">body</span>: body</div><div class="line">			&#125;;</div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">return</span> modules;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>内部的私有变量modules是个哈希列表，因为模块名是<strong>唯一的不重名的字符串</strong>，我们自然的想到用这样的数据结构储存它，module方法简单的把模块和相关信息放到了modules里，而getAll方法则直接返回了modules。</p>
+<p>这样，我们通过了第二段测试。</p>
+<p>继续往下，在测试代码中定义第二个模块：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">it(<span class="string">'define module2'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	MyModule.module(<span class="string">'module2'</span>, [<span class="string">'module1'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1</span>) </span>&#123;</div><div class="line">		expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line">		<span class="keyword">return</span> &#123;</div><div class="line">			<span class="attr">a</span>: <span class="number">456</span>,</div><div class="line">			<span class="attr">ref</span>: module1</div><div class="line">		&#125;</div><div class="line">	&#125;)</div><div class="line">	expect(MyModule.getAll()).has.a.property(<span class="string">'module2'</span>)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>module1被注入到了module2中，并且在module2里我们尝试访问module1的foo属性，如果一切顺利，它应该是<code>123</code>。</p>
+<p>实现上面的逻辑我们需要对MyModule的module方法里的第二个参数做一些处理，现在来修改index.js：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">let</span> modules = &#123;&#125;;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params">name, injects, body</span>) </span>&#123;</div><div class="line"></div><div class="line">			<span class="function"><span class="keyword">function</span> <span class="title">enumerateInjects</span>(<span class="params">injects</span>) </span>&#123;</div><div class="line">				<span class="keyword">let</span> tmp = [];</div><div class="line"></div><div class="line">				<span class="keyword">for</span> (<span class="keyword">let</span> i <span class="keyword">in</span> injects) &#123;</div><div class="line">					<span class="keyword">if</span> (modules[injects[i]]) &#123;</div><div class="line">						tmp.push(modules[injects[i]].body())</div><div class="line">					&#125; <span class="keyword">else</span> &#123;</div><div class="line">						<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`Inject error. No module named <span class="subst">$&#123;injects[i]&#125;</span>`</span>);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line"></div><div class="line">				<span class="keyword">return</span> tmp;</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			modules[name] = &#123;</div><div class="line">				<span class="attr">dependencies</span>: injects,</div><div class="line">				<span class="attr">body</span>: body</div><div class="line">			&#125;;</div><div class="line"></div><div class="line">			body.apply(<span class="keyword">this</span>, enumerateInjects(injects))</div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">return</span> modules;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>enumerateInjects函数遍历了injects参数，把对应模块执行，并将执行后的结果放到一个数组里返回，并且我们还额外做了一点错误处理（当指定要依赖的模块不存在时抛出错误）。在module方法的最后，我们把得到的数组传给了body函数，apply方法在这里很关键，第二个参数数组被展开成了多个参数，于是module2拿到了module1执行后的结果。</p>
+<p>此时再运行一遍测试脚本，比预料的还要顺利。</p>
+<p>看上去我们的构造器完成了，module1顺利注入到了module2里，实际上到此为止module1确实构成了一个模块，可以被注入到任何模块中。但我们考虑的还不够，我们应该继续往下，尝试构造module3，把module1和module2都注入进去看看会发生什么。</p>
+<p>补充测试脚本：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">it(<span class="string">'define module3'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	MyModule.module(<span class="string">'module3'</span>, [<span class="string">'module1'</span>, <span class="string">'module2'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1, module2</span>) </span>&#123;</div><div class="line">		expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line">		expect(module2.a).to.equal(<span class="number">456</span>)</div><div class="line">		expect(module2.ref.foo).to.equal(<span class="number">123</span>)</div><div class="line"></div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	expect(MyModule.getAll()).has.a.property(<span class="string">'module3'</span>)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<p>再次运行测试，没有通过。控制台抛出了TypeError错误，告诉我们这里引用了不存在的属性。</p>
+<p>思考index.js里的代码，我们假定module1的注入没有问题（事实上确实没问题，因为前面已经经过检验），当我们把module2注入module3时enumerateInjects函数做了什么？</p>
+<p>module2依赖module1，但遍历过程中我们却忽略了这一点，直接执行module2的body而不考虑它在定义时声明的依赖，若module1此时没有注入到module2里，自然不可能得到我们预期的结果。</p>
+<p>对enumerateInjects函数做如下修改：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">enumerateInjects</span>(<span class="params">injects</span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> tmp = [];</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">let</span> i <span class="keyword">in</span> injects) &#123;</div><div class="line">		<span class="keyword">if</span> (modules[injects[i]]) &#123;</div><div class="line">			<span class="keyword">if</span> (modules[injects[i]].dependencies.length &gt; <span class="number">0</span>) &#123;</div><div class="line">				<span class="keyword">let</span> deepEnumerateInjects = enumerateInjects(modules[injects[i]].dependencies);</div><div class="line"></div><div class="line">				tmp.push(modules[injects[i]].body.apply(<span class="literal">null</span>, deepEnumerateInjects))</div><div class="line">			&#125; <span class="keyword">else</span> &#123;</div><div class="line">				tmp.push(modules[injects[i]].body())</div><div class="line">			&#125;</div><div class="line">		&#125; <span class="keyword">else</span> &#123;</div><div class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`Inject error. No module named <span class="subst">$&#123;injects[i]&#125;</span>`</span>);</div><div class="line">        &#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> tmp;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在第一个if判断里我们添加了对依赖的依赖的依赖…的处理，没错，这是个<strong>递归</strong>，无论模块嵌套有多深，在有限的深度里我们都可以将它一个个找到并最终传递给当前模块。</p>
+<p>到此，测试脚本顺利运行。最终我们的module.js和index.js如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// module.js</span></div><div class="line"><span class="keyword">let</span> expect = <span class="built_in">require</span>(<span class="string">'chai'</span>).expect;</div><div class="line"></div><div class="line">describe(<span class="string">'My module tests'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="keyword">let</span> MyModule;</div><div class="line"></div><div class="line">	before(<span class="function"><span class="keyword">function</span>(<span class="params">done</span>) </span>&#123;</div><div class="line">		MyModule = <span class="built_in">require</span>(<span class="string">'../index.js'</span>)()</div><div class="line"></div><div class="line">		done()</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'desc MyModule'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'module'</span>)</div><div class="line">		expect(MyModule).has.a.property(<span class="string">'getAll'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'define module1'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		MyModule.module(<span class="string">'module1'</span>, [], <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">let</span> tmp = <span class="number">123</span></div><div class="line">			<span class="keyword">return</span> &#123;</div><div class="line">				<span class="attr">foo</span>: tmp</div><div class="line">			&#125;</div><div class="line">		&#125;)</div><div class="line"></div><div class="line">		expect(MyModule.getAll()).has.a.property(<span class="string">'module1'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'define module2'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		MyModule.module(<span class="string">'module2'</span>, [<span class="string">'module1'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1</span>) </span>&#123;</div><div class="line">			expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line"></div><div class="line">			<span class="keyword">return</span> &#123;</div><div class="line">				<span class="attr">a</span>: <span class="number">456</span>,</div><div class="line">				<span class="attr">ref</span>: module1</div><div class="line">			&#125;</div><div class="line">		&#125;)</div><div class="line"></div><div class="line">		expect(MyModule.getAll()).has.a.property(<span class="string">'module2'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	it(<span class="string">'define module3'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">		MyModule.module(<span class="string">'module3'</span>, [<span class="string">'module1'</span>, <span class="string">'module2'</span>], <span class="function"><span class="keyword">function</span>(<span class="params">module1, module2</span>) </span>&#123;</div><div class="line">			expect(module1.foo).to.equal(<span class="number">123</span>)</div><div class="line">			expect(module2.a).to.equal(<span class="number">456</span>)</div><div class="line">			expect(module2.ref.foo).to.equal(<span class="number">123</span>)</div><div class="line"></div><div class="line">		&#125;)</div><div class="line"></div><div class="line">		expect(MyModule.getAll()).has.a.property(<span class="string">'module3'</span>)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">&#125;)</div></pre></td></tr></table></figure>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// index.js</span></div><div class="line">exports = <span class="built_in">module</span>.exports = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line"></div><div class="line">	<span class="keyword">let</span> modules = &#123;&#125;;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> &#123;</div><div class="line">		<span class="attr">module</span>: <span class="function"><span class="keyword">function</span>(<span class="params">name, injects, body</span>) </span>&#123;</div><div class="line"></div><div class="line">			<span class="function"><span class="keyword">function</span> <span class="title">enumerateInjects</span>(<span class="params">injects</span>) </span>&#123;</div><div class="line">				<span class="keyword">let</span> tmp = [];</div><div class="line">				<span class="keyword">for</span> (<span class="keyword">let</span> i <span class="keyword">in</span> injects) &#123;</div><div class="line">					<span class="keyword">if</span> (modules[injects[i]]) &#123;</div><div class="line">						<span class="keyword">if</span> (modules[injects[i]].dependencies.length &gt; <span class="number">0</span>) &#123;</div><div class="line">							<span class="keyword">let</span> deepEnumerateInjects = enumerateInjects(modules[injects[i]].dependencies);</div><div class="line"></div><div class="line">							tmp.push(modules[injects[i]].body.apply(<span class="literal">null</span>, deepEnumerateInjects))</div><div class="line">						&#125; <span class="keyword">else</span> &#123;</div><div class="line">							tmp.push(modules[injects[i]].body())</div><div class="line">						&#125;</div><div class="line">					&#125; <span class="keyword">else</span> &#123;</div><div class="line">						<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">`Inject error. No module named <span class="subst">$&#123;injects[i]&#125;</span>`</span>);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line"></div><div class="line">				<span class="keyword">return</span> tmp;</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			modules[name] = &#123;</div><div class="line">				<span class="attr">dependencies</span>: injects,</div><div class="line">				<span class="attr">body</span>: body</div><div class="line">			&#125;;</div><div class="line"></div><div class="line">			body.apply(<span class="keyword">this</span>, enumerateInjects(injects))</div><div class="line">		&#125;,</div><div class="line">		<span class="attr">getAll</span>: <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">			<span class="keyword">return</span> modules;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>本文的最后，我们定义的module3其实并不是一个模块，因为它没有满足篇头结论里的第二条。因此在别的模块中注入它是毫无意义的。</p>
+<p>良好的模块定义和管理在协作开发中至关重要，模块模式并没有什么最佳实践，有的只是对经验的不段总结，本文说述的也只是模块模式的凤毛麟角。</p>
+<p>本篇文章里的代码不建议用到生产环境中，建议使用优秀的方案如<a href="https://github.com/requirejs/requirejs" target="_blank" rel="external">require.js</a>。</p>
+<p>完整源码地址：<a href="https://github.com/cyyyu/inc" target="_blank" rel="external">github</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h3 id=&quot;写在前面&quot;&gt;&lt;a href=&quot;#写在前面&quot; class=&quot;headerlink&quot; title=&quot;写在前面&quot;&gt;&lt;/a&gt;写在前面&lt;/h3&gt;&lt;p&gt;阅读下文假定你基本了解：使用&lt;code&gt;mocha&lt;/code&gt;做单元测试，angularjs，nodejs环境搭建以及np
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>git diff使用</title>
+    <link href="http://cyyyu.github.io/2016/10/09/git-diff%E4%BD%BF%E7%94%A8/"/>
+    <id>http://cyyyu.github.io/2016/10/09/git-diff使用/</id>
+    <published>2016-10-09T03:02:24.000Z</published>
+    <updated>2017-01-29T12:35:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>​ diff命令平时没少用，但一直使用的只有下面两条：</p>
+<ul>
+<li>比较分支：<code>git diff master..another</code></li>
+</ul>
+<ul>
+<li>查看目前修改了的内容：仅输入<code>git diff</code></li>
+</ul>
+<p>  实际上，diff是个很强大的命令，能够找出项目里任意两次提交之间的改动。</p>
+<p>  ## 已经添加到暂存区的修改</p>
+<p>  <code>git diff --cached</code></p>
+<p>  没有<code>--cached</code>选项的命令查看工作区修改，而上面的命令用户查看暂存区的修改和本地当前索引间的差异，不难理解，在下一次commit时提交的就是这些内容。</p>
+<p>  ## 当前索引与上一次提交之间的差别</p>
+<p>  <code>git diff HEAD</code></p>
+<p>  ## 当前文件目录与另一个分支之间的差别</p>
+<p>  <code>git diff branchname</code></p>
+<p>  ## 路径限定符<code>—</code></p>
+<p>  <code>git diff — app.js</code>，<code>git diff -- xxx</code></p>
+<p>  上面第一个命令显示了我对app.js文件的修改。第二个命令显示了xxx目录下(如果xxx是目录名的话)所有文件的修改。</p>
+<p>  ## 综合使用</p>
+<p>  结合以上命令，如果有这样的需求：查看根目录app.js文件在分支A和分支B有什么不同，就可以用下面这个命令。</p>
+<p>  <code>git diff A..B -- app.js</code></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;​ diff命令平时没少用，但一直使用的只有下面两条：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;比较分支：&lt;code&gt;git diff master..another&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;ul&gt;
+&lt;li&gt;查看目前修改了的内容：仅输入&lt;code&gt;git diff&lt;/cod
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>一个有趣的this指向问题</title>
+    <link href="http://cyyyu.github.io/2016/07/27/%E4%B8%80%E4%B8%AA%E6%9C%89%E8%B6%A3%E7%9A%84this%E6%8C%87%E5%90%91%E9%97%AE%E9%A2%98/"/>
+    <id>http://cyyyu.github.io/2016/07/27/一个有趣的this指向问题/</id>
+    <published>2016-07-27T02:39:55.000Z</published>
+    <updated>2016-09-20T17:23:50.000Z</updated>
+    
+    <content type="html"><![CDATA[<pre><code>let obj = {
+    test: ()=&gt;{
+        console.log(this)
+    }
+}
+obj.test() // this -&gt; ？
+(obj.test = obj.test)() // this -&gt; ？
+(false || obj.test)() // this -&gt; ？
+</code></pre><p>这里考察了多个知识点。</p>
+<ul>
+<li>谁调用了this就指向谁</li>
+<li>匿名函数this指向window（特指在浏览器中）</li>
+<li>赋值语句返回<strong>右值</strong></li>
+<li>逻辑或语句返回从左到右第一个真值，否则返回最后一个值</li>
+</ul>
+<p>理解了这几条再回头看问题就很简单了。</p>
+<p>三个this分别指向obj, window, window</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;pre&gt;&lt;code&gt;let obj = {
+    test: ()=&amp;gt;{
+        console.log(this)
+    }
+}
+obj.test() // this -&amp;gt; ？
+(obj.test = obj.test)() // this -&amp;gt;
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>vim启动失败`Library not loaded `</title>
+    <link href="http://cyyyu.github.io/2016/06/15/vim%E5%90%AF%E5%8A%A8%E5%A4%B1%E8%B4%A5/"/>
+    <id>http://cyyyu.github.io/2016/06/15/vim启动失败/</id>
+    <published>2016-06-15T04:06:26.000Z</published>
+    <updated>2017-01-29T12:35:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">`=\&gt; vim .vimrc</div><div class="line">dyld: Library not loaded: /usr/local/lib/libruby.2.2.0.dylib</div><div class="line">  Referenced from: /usr/local/bin/vim</div><div class="line">  Reason: image not found</div><div class="line">[1]()    85018 trace trap  vim .vimrc</div></pre></td></tr></table></figure>
+<p>`</p>
+<h2 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">`brew update</div><div class="line">brew uninstall --force ruby</div><div class="line">brew uninstall --force openssl</div><div class="line">brew install openssl</div><div class="line">brew link openssl --force</div><div class="line">brew install rbenv</div><div class="line">rbenv install 2.2.0</div><div class="line">rbenv global 2.2.0</div><div class="line">echo &apos;export PATH=/usr/local/bin:$PATH&apos; \&gt;\&gt; /.zshrc</div><div class="line">echo &apos;export PATH=$HOME/.rbenv/shims:$PATH&apos; \&gt;\&gt; /.zshrc</div><div class="line">CONFIGURE_OPTS=&quot;--disable-install-rdoc --enable-shared&quot; rbenv install 2.2.0</div><div class="line">sudo ln -s /.rbenv/versions/2.2.0 /usr/local/opt/ruby</div></pre></td></tr></table></figure>
+<p>`<br>再重装vim</p>
+<p><code>sudo brew install vim</code></p>
+<p>据说<code>brew update</code>失败的解决办法也是<code>brew update</code>，🙄️。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;问题&quot;&gt;&lt;a href=&quot;#问题&quot; class=&quot;headerlink&quot; title=&quot;问题&quot;&gt;&lt;/a&gt;问题&lt;/h2&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div c
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>

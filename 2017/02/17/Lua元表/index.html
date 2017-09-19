@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  
+  <title>Lua元表 | Chuang Yu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="javascript语言本身不支持面向对象，ES2015中增加了class关键字，却不过是prototype语法糖而已，本质上prototype形式的面向对象只能算是一种“模拟”，这其中很重要的原因之一是js从来没有一套完美的深拷贝方案，子类只能借助原型链获取父类方法的引用，这不能算是严格意义的继承，当然也就算不上面向对象。
+和js一样，lua的面向对象需要通过table来模拟，有些行为很像js中">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lua元表">
+<meta property="og:url" content="http://cyyyu.github.io/2017/02/17/Lua元表/index.html">
+<meta property="og:site_name" content="Chuang Yu">
+<meta property="og:description" content="javascript语言本身不支持面向对象，ES2015中增加了class关键字，却不过是prototype语法糖而已，本质上prototype形式的面向对象只能算是一种“模拟”，这其中很重要的原因之一是js从来没有一套完美的深拷贝方案，子类只能借助原型链获取父类方法的引用，这不能算是严格意义的继承，当然也就算不上面向对象。
+和js一样，lua的面向对象需要通过table来模拟，有些行为很像js中">
+<meta property="og:updated_time" content="2017-02-17T10:43:18.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Lua元表">
+<meta name="twitter:description" content="javascript语言本身不支持面向对象，ES2015中增加了class关键字，却不过是prototype语法糖而已，本质上prototype形式的面向对象只能算是一种“模拟”，这其中很重要的原因之一是js从来没有一套完美的深拷贝方案，子类只能借助原型链获取父类方法的引用，这不能算是严格意义的继承，当然也就算不上面向对象。
+和js一样，lua的面向对象需要通过table来模拟，有些行为很像js中">
+  
+    <link rel="alternate" href="/atom.xml" title="Chuang Yu" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.ico">
+  
+  <link rel="stylesheet" href="/css/typing.css">
+</head>
+
+  
+    <body>
+  
+      <div id="container" class="container">
+        <article id="post-Lua元表" class="article article-type-post" itemscope itemprop="blogPost">
+  <header id="header" class="header">
+  <nav id="main-nav" class="main-nav">
+    
+      <a class="main-nav-link" href="/">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+  </nav>
+</header>
+
+  <hr/>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Lua元表
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry typo" itemprop="articleBody">
+      
+        <p>javascript语言本身不支持面向对象，ES2015中增加了class关键字，却不过是prototype语法糖而已，本质上prototype形式的面向对象只能算是一种“模拟”，这其中很重要的原因之一是js从来没有一套完美的深拷贝方案，子类只能借助原型链获取父类方法的引用，这不能算是严格意义的继承，当然也就算不上面向对象。</p>
+<p>和js一样，lua的面向对象需要通过table来模拟，有些行为很像js中的原型，比如下面的例子。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">Animal = &#123;name = <span class="string">"Animal"</span>&#125;</div><div class="line">Animal.__index= Animal</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Animal:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Animal:GetName</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">return</span> self.name</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">x = Animal:new()</div></pre></td></tr></table></figure>
+<p>在lua中，<strong>元表</strong>是个很有意思的存在。上面Animal是实例出的对象x的元表，元表在某种意义上相当于js中的构造函数，而<code>__index</code>则类似<code>prototype</code>（这里<code>__index</code>我设置为指向自身）。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">print</span>(x.name) <span class="comment">-- Animal</span></div><div class="line"><span class="built_in">print</span>(x:GetName()) <span class="comment">-- Animal</span></div><div class="line">Animal.name = <span class="string">"Animal2"</span></div><div class="line"><span class="built_in">print</span>(x.name) <span class="comment">-- Animal2</span></div><div class="line"><span class="built_in">print</span>(x:GetName()) <span class="comment">-- Animal2</span></div></pre></td></tr></table></figure>
+<p>如果在x中不存在name键，对<code>x.name</code>的访问实际上会从x的元表中的<code>__index</code>键寻找，如果仍然找不到，则会在Animal的元表中继续找，若既没有元表也找不到该键，返回nil，这和js原型链如出一辙。</p>
+<p>借助元表，我们很容易模拟面向对象中的继承和多态，比如我们来实现一个继承自Animal的Dog类。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">Dog = &#123;&#125;</div><div class="line"><span class="built_in">setmetatable</span>(Dog, Animal)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Dog:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  self.__index = self</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+<p>效果如下。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">y = Dog:new()</div><div class="line"></div><div class="line"><span class="built_in">print</span>(y:GetName()) <span class="comment">-- Animal</span></div><div class="line">Animal.name = <span class="string">"Hello"</span></div><div class="line"><span class="built_in">print</span>(y.GetName()) <span class="comment">-- Hello</span></div><div class="line">Dog.name = <span class="string">"Dog"</span></div><div class="line"><span class="built_in">print</span>(y.GetName()) <span class="comment">-- Dog</span></div></pre></td></tr></table></figure>
+<p>实际上，lua中的元表比js中的原型机制强大的多。</p>
+<p>上述的例子是Lua中最常见的实现OO的方法，除了关键的<code>setmetatable</code>函数，<code>__index</code>键也很重要，它不仅可以是另一个table的引用，也可以是一个函数，当实例对象试着从<code>__index</code>寻找时便会调用这个函数，可以想象，这为多重继承的实现提供了可能，而js做不到这一点（<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Details_of_the_Object_Model#No_multiple_inheritance" target="_blank" rel="external">参考</a>）。</p>
+<p>举个简单的例子。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-- 定义两个相似的类A和B</span></div><div class="line">A = &#123;foo1 = <span class="number">123</span>, name = <span class="string">"A"</span>&#125;</div><div class="line">A.__index = A</div><div class="line">B = &#123;foo2 = <span class="number">456</span>, name = <span class="string">"B"</span>&#125;</div><div class="line">B.__index = B</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">A:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">A:GetName</span><span class="params">()</span></span></div><div class="line">  <span class="built_in">print</span>(self.name)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">B:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, self)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">B:GetName</span><span class="params">()</span></span></div><div class="line">  <span class="built_in">print</span>(self.name)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">B:MethodOnB</span><span class="params">()</span></span></div><div class="line">  <span class="built_in">print</span>(<span class="string">"method on B"</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- 定义类C，继承自A和B</span></div><div class="line">C = &#123;&#125;</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">C:new</span><span class="params">()</span></span></div><div class="line">  <span class="keyword">local</span> childA = A:new()</div><div class="line">  <span class="keyword">local</span> childB = B:new()</div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="built_in">setmetatable</span>(re, &#123;</div><div class="line">    __index = <span class="function"><span class="keyword">function</span> <span class="params">(table, key)</span></span></div><div class="line">      <span class="keyword">if</span> childA[key] <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> childA[key]</div><div class="line">      <span class="keyword">elseif</span> childB[key] <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> childB[key]</div><div class="line">      <span class="keyword">else</span> </div><div class="line">        <span class="keyword">return</span> <span class="string">"not found"</span></div><div class="line">      <span class="keyword">end</span></div><div class="line">    <span class="keyword">end</span></div><div class="line">  &#125;)</div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">x = C:new()</div><div class="line"></div><div class="line"><span class="built_in">print</span>(x.foo1) <span class="comment">-- 123</span></div><div class="line"><span class="built_in">print</span>(x.foo2) <span class="comment">-- 456</span></div><div class="line"></div><div class="line">x:GetName() <span class="comment">-- A</span></div><div class="line">x:MethodOnB() <span class="comment">-- method on B</span></div></pre></td></tr></table></figure>
+<p>C类继承了来自A和B的方法。</p>
+<p>注意到上面的例子中A和B都拥有GetName方法，我们可以进一步假设A和B都继承自另外一个对象，而他们各自的GetName方法其实都继承自这个对象，这就产生了经典的钻石问题（也叫菱形继承问题），即：C继承到的GetName方法到底来自A还是B？一些原生支持面向对象和多重继承的语言为了解决钻石问题，往往会采用特定的遍历算法，如Python采用的是从左到右广度优先原则，使用的是名叫“C3”的算法。而在上面这里例子里我只是简单的指定了先从A中寻找，再从B中寻找，所以C继承了A的GetName方法。</p>
+<p>在lua中，元表除了用来模拟面向对象，还有一些不可思议的作用：自定义table间运算的行为。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-- 定义加法行为</span></div><div class="line">meta = &#123;__add = <span class="function"><span class="keyword">function</span><span class="params">(A, B)</span></span></div><div class="line">  <span class="keyword">local</span> re = &#123;&#125;</div><div class="line">  <span class="keyword">for</span> _, val <span class="keyword">in</span> <span class="built_in">ipairs</span>(A) <span class="keyword">do</span></div><div class="line">    <span class="built_in">table</span>.insert(re, val)</div><div class="line">  <span class="keyword">end</span></div><div class="line">  <span class="keyword">for</span> _, val <span class="keyword">in</span> <span class="built_in">ipairs</span>(B) <span class="keyword">do</span></div><div class="line">    <span class="built_in">table</span>.insert(re, val)</div><div class="line">  <span class="keyword">end</span></div><div class="line">  <span class="keyword">return</span> re</div><div class="line"><span class="keyword">end</span></div><div class="line">&#125;</div><div class="line">a = <span class="built_in">setmetatable</span>(&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;, meta)</div><div class="line">b = <span class="built_in">setmetatable</span>(&#123;<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>&#125;, meta)</div><div class="line"></div><div class="line">c = a + b <span class="comment">-- &#123;1, 2, 3, 4, 5, 6&#125;</span></div></pre></td></tr></table></figure>
+<p>除了<code>__add</code>，元表上可自定义的运算行为包括如下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">__add		对应的运算符 &apos;+&apos;.</div><div class="line">__sub		对应的运算符 &apos;-&apos;.</div><div class="line">__mul		对应的运算符 &apos;*&apos;.</div><div class="line">__div		对应的运算符 &apos;/&apos;.</div><div class="line">__mod		对应的运算符 &apos;%&apos;.</div><div class="line">__unm		对应的运算符 &apos;-&apos;.</div><div class="line">__concat	对应的运算符 &apos;..&apos;.</div><div class="line">__eq		对应的运算符 &apos;==&apos;.</div><div class="line">__lt		对应的运算符 &apos;&lt;&apos;.</div><div class="line">__le		对应的运算符 &apos;&lt;=&apos;.</div></pre></td></tr></table></figure>
+<p>而除了运算，元表甚至可以让table像函数一样调用，使用<code>__call</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">a = setmetatable(&#123;&#125;, &#123;__call = function(mytable, params)</div><div class="line">  print(&quot;123&quot;..params)</div><div class="line">end&#125;)</div><div class="line"></div><div class="line">a(456) -- 123456</div></pre></td></tr></table></figure>
+<p>所有上述提到的在元表上以<code>__</code>开头的方法统称为<strong><a href="https://www.lua.org/pil/13.html" target="_blank" rel="external">元方法</a></strong>。</p>
+<p>元表有这么多有意思的设计，也难怪lua程序员说js中的原型只能算实现了元表功能的十分之一。</p>
+<p>话说回来，在lua中使用面向对象和在js中的感觉差不多，过去基于prototype模拟OO，很多人有不同的实现，如今js在语法层面统一了写法，而在lua中仍然有很多人尝试对上面这些例子的写法进行封装，试图让代码更容易维护和扩展，这样的折腾其实没什么意义，因为面向对象本身就不易维护。以小而精致著称的lua也不太可能提供语言层面支持，毕竟连社区都没几个，也没看到有人表达这样的诉求，函数式语言就写函数式，多好。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <ul class="article-meta">
+        <li>
+          <span class="label">Published Date:</span>
+          <a href="/2017/02/17/Lua元表/" class="article-date">
+  <time datetime="2017-02-17T10:43:18.000Z" itemprop="datePublished">2017-02-17</time>
+</a>
+
+        </li>
+        
+        
+        <hr/>
+      </ul>
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav" class="article-nav">
+  
+    <span id="article-nav-newer" class="article-nav-link-wrap newer"></span>
+  
+  
+    <a href="/2017/02/09/面试中的问题2/" id="article-nav-older" class="article-nav-link-wrap older">
+      <strong class="article-nav-caption">Ancien</strong>
+      <div class="article-nav-title">面试中的问题2</div>
+    </a>
+  
+</nav>
+
+
+  
+</article>
+
+
+
+
+      </div>
+      
+    <footer id="footer" class="post-footer footer">
+      <hr/>
+      <div id="footerContent" class="footer-content">
+        <p>Chuang Yu. 1993.</p>
+
+
+      
+      <a id="nav-lss-link" class="nav-icon" href="/atom.xml" title="Flux RSS">RSS</a>
+    
+
+      </div>
+    </footer>
+
+      
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/typing.js"></script>
+<!--[if lt IE 9]><script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.min.js"></script><![endif]-->
+
+
+
+<!-- Google Analytics -->
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-84954709-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+
+
+
+    </div>
+  </body>
+</html>
