@@ -3,10 +3,11 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>音吧</title>
+<link href="/css/music.css" type="text/css" rel="stylesheet" />
 </head>
 <body ondragstart="window.event.returnValue=false" oncontextmenu="window.event.returnValue=false" onselectstart="event.returnValue=false">
 
-<div id="hovertreecontainer">
+<div id="myBar">
 
 <div>
 <h1 id="h1">音吧，嗨吧</h1>
@@ -23,12 +24,19 @@
 </div>
 
 <canvas id="canvas"></canvas>
-<audio autoplay="autoplay">
-<source src="http://hovertree.com" type="audio/ogg">
-<source src="http://cms.hovertree.com/hovertreesound/hovertreexihuanni.mp3" type="audio/mpeg">
-您的浏览器不支持播放音乐。请用支持html5的浏览器打开,例如chrome或火狐或者新版IE等。
-<br />
-</audio>
+<script type="text/javascript">
+//<!CDATA[
+var bodyBgs = [];
+bodyBgs[0] = "/musics/薛之谦 - 我害怕.mp3";
+bodyBgs[1] = "/musics/孙燕姿 - 在，也不见.mp3";
+bodyBgs[2] = "/musics/张赫宣 - 我们不该这样的.mp3";
+bodyBgs[3] = "/musics/金玟岐 - 腻味.mp3";
+bodyBgs[4] = "/musics/陈学冬 - 不再见";
+var randomBgIndex = Math.round( Math.random() * 4 ); 
+document.write('<audio src=\''+bodyBgs[randomBgIndex]+ '\'autoplay=\'autoplay\'></audio>');
+//]]>
+</script> 
+
 <script type="text/javascript" src="/js/music.js">
 </script>
 <script type="text/javascript">
