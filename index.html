@@ -1,28 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  
-  <title>Hu Lei</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hu Lei">
-<meta property="og:url" content="https://koraiHub.github.io/index.html">
-<meta property="og:site_name" content="Hu Lei">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hu Lei">
-  
+	<meta charset="utf-8">
+	<title>Hu Lei</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="Hu Lei">
+	<meta property="og:url" content="https://koraiHub.github.io/index.html">
+	<meta property="og:site_name" content="Hu Lei">
+	<meta name="twitter:card" content="summary">
+	<meta name="twitter:title" content="Hu Lei">
     <link rel="alternate" href="/atom.xml" title="Hu Lei" type="application/atom+xml">
-  
-  
     <link rel="icon" href="/favicon.ico">
-  
-  <link rel="stylesheet" href="/css/typing.css">
+    <link rel="stylesheet" href="/css/typing.css">
+    <link rel="stylesheet" href="css/minimalminimal.css" type="text/css" charset="utf-8">
+    <link rel="stylesheet" href="css/rain.css" type="text/css" charset="utf-8">
 </head>
 
   
     <body class="home-body">
-  
+			<div id="screen">
+			<div class="fallback-video">
+            <p>Sorry! Looks your browser doesn't support this experiment.</p>
+            <p>Here's a video of what you're missing out on:</p>
+            <object width="640" height="390"><param name="movie" value="http://www.youtube.com/v/izxmHpuCeJ8?fs=1&amp;hl=en_US&amp;rel=0"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/izxmHpuCeJ8?fs=1&amp;hl=en_US&amp;rel=0" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="640" height="390"></embed></object>
+            <p>If you can, you should update to something more modern like Google Chrome or Mozilla Firefox.</p>
+			</div>
+
+			<div id="cursor"></div>
+
+			<div class="flavor-wrapper">
+				<div class="flavor">
+                <h1>Rain falling in my heart</h1>
+				<p>亦无风雨亦无晴</p>
+                <p class="drop-counter">(<span>0</span> drops)</p>
+				</div>
+			</div>
+
+        <div id="rain">
+
+        </div>
+
+        <div id="cloud"></div>
+
+        <div class="controls">
+            <label for="gravity">Gravity</label> <input name="gravity" type="range" step="0.01" min="0.25" max="2" value="1"/>
+            <label for="drops">Drops</label> <input name="drops" type="range" step="0.01" min="0.25" max="4" value="1"/>
+            <label for="font-size">font-size</label> <input name="font-size" type="range" step="0.01" min="0.5" max="1.5" value="1"/>
+        </div>
+
+        <div class="controls hidden">
+            <label for="gravity">Gravity</label>
+            <select name="gravity">
+                <option value="0.25">Low</option>
+                <option selected value="1">Normal</option>
+                <option value="2">High</option>
+            </select>
+
+            <label for="drops">Drops</label>
+            <select name="drops">
+                <option value="0.25">Few</option>
+                <option selected value="1">Default</option>
+                <option value="2.5">Many</option>
+                <option value="4">Tons!</option>
+            </select>
+            <label for="font-size">font-size</label>
+            <select name="font-size">
+                <option value="0.5">Small</option>
+                <option selected value="1">Normal</option>
+                <option value="1.5">Large</option>
+            </select>
+        </div>
+    </div>
+	
       <div id="container" class="container">
         <div class="home">
   <div class="content">
@@ -82,7 +132,8 @@
 <script src="/js/typing.js"></script>
 <!--[if lt IE 9]><script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.min.js"></script><![endif]-->
 
-
+    <script src="js/minimal.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/rain.js" type="text/javascript" charset="utf-8"></script>
 
 <!-- Google Analytics -->
 <script type="text/javascript">
